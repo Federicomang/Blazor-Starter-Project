@@ -1,0 +1,19 @@
+﻿@rendermode InteractiveWebAssembly
+
+<MudSpacer />
+<AuthorizeView>
+    <Authorized>
+        <MudButton @onclick="Logout" Color="Color.Inherit" Style="color:white;">Logout</MudButton>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    public async Task Logout()
+    {
+        var response = await FeatureService.Run(new Features.Identity.Logout.Request());
+        if(response.Success)
+        {
+            NavigationManager.NavigateTo(NavigationManager.Uri, RendererInfo.IsInteractive);
+        }
+    }
+}

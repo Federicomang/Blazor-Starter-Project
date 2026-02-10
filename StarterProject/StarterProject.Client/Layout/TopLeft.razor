@@ -1,0 +1,20 @@
+﻿@rendermode InteractiveServer
+
+<MudAppBar Elevation="4" Color="Color.Primary">
+    <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Inherit" OnClick="@((e) => DrawerToggle())" Class="mr-0 ml-0" />
+    <MudText Typo="Typo.h6">Qualcosa</MudText>
+    <HeaderBar />
+</MudAppBar>
+<MudDrawer @bind-Open="_drawerOpen" Elevation="25" ClipMode="DrawerClipMode.Always">
+    <NavMenu />
+</MudDrawer>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+}

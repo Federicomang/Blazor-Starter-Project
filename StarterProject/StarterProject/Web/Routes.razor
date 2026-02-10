@@ -1,0 +1,23 @@
+﻿@using StarterProject.Client.Layout.MainLayout
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(_Imports).Assembly" AdditionalAssemblies="new[] { typeof(StarterProject.Client._Imports).Assembly }">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="typeof(MainLayout)">
+                <Authorizing>
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </Authorizing>
+                <NotAuthorized>
+                    <StarterProject.Client.Pages.Identity.Login />
+                </NotAuthorized> 
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <CascadingAuthenticationState>
+               @*  <LayoutView Layout="@typeof(NotFoundLayout)">
+                    <p>Sorry, there's nothing at this address.</p>
+                </LayoutView> *@
+            </CascadingAuthenticationState>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

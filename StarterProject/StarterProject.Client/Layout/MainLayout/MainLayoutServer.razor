@@ -1,0 +1,16 @@
+﻿@rendermode InteractiveServer
+
+<MudThemeProvider Theme="_currentTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<EventManagerProvider />
+
+@code {
+    private MudTheme _currentTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+        }
+    };
+}

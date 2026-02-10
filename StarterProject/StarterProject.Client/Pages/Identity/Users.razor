@@ -1,0 +1,33 @@
+﻿@using StarterProject.Client.Features.Identity.Models
+@rendermode InteractiveWebAssembly
+@page "/users"
+@inject IStringLocalizer<Users> localizer
+@attribute [Authorize]
+
+
+<div>
+    <MudPaper Class="d-flex mt-4 pa-2">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateUser">@_globalLocalizer["Create"]</MudButton>
+        <MudTextField Class="ml-4" Placeholder="@_globalLocalizer["Search"]" T="string" Value="searchString" ValueChanged="Search"/>
+    </MudPaper>
+    <MudTable @ref="table" Class="mt-4" ServerData="ServerReload">
+        <HeaderContent>
+            <MudTh>@localizer["Name"]</MudTh>
+            <MudTh>@localizer["Email"]</MudTh>
+            <MudTh>@localizer["Phone Number"]</MudTh>
+            <MudTh>@_globalLocalizer["Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudHighlighter Text="@context.FullName" HighlightedText="@searchString"/></MudTd>
+            <MudTd><MudHighlighter Text="@context.Email" HighlightedText="@searchString" /></MudTd>
+            <MudTd><MudHighlighter Text="@context.PhoneNumber" HighlightedText="@searchString" /></MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => EditUser(context)">Edit</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => DeleteUser(context)">Delete</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager  />
+        </PagerContent>
+    </MudTable>
+</div>

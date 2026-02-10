@@ -1,0 +1,57 @@
+﻿<MudDialog>
+    <DialogContent>
+        <div>
+            <MudText>@Text</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div>
+            <MudButton Class="@NoButtonClass" Variant="@NoButtonVariant" Color="@NoButtonColor" OnClick="MudDialog.Cancel">@NoButtonText</MudButton>
+            <MudButton Class="@YesButtonClass" Variant="@YesButtonVariant" Color="@YesButtonColor" OnClick="() => MudDialog.Close()">@YesButtonText</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public string YesButtonText { get; set; }
+
+    [Parameter]
+    public string NoButtonText { get; set; }
+
+    [Parameter]
+    public Color YesButtonColor { get; set; } = Color.Primary;
+
+    [Parameter]
+    public Color NoButtonColor { get; set; } = Color.Error;
+
+    [Parameter]
+    public Variant YesButtonVariant { get; set; } = Variant.Filled;
+
+    [Parameter]
+    public Variant NoButtonVariant { get; set; } = Variant.Filled;
+
+    [Parameter]
+    public string YesButtonClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string NoButtonClass { get; set; } = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(YesButtonText))
+        {
+            YesButtonText = _globalLocalizer["Yes"];
+        }
+        if (string.IsNullOrEmpty(NoButtonText))
+        {
+            NoButtonText = _globalLocalizer["No"];
+        }
+    }
+}
