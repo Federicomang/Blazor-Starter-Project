@@ -438,125 +438,6 @@ namespace StarterProject.Migrations
                     b.ToTable("AuditLogDetail", "History");
                 });
 
-            modelBuilder.Entity("StarterProject.Database.Entities.Cliente", b =>
-                {
-                    b.Property<string>("PartitaIVA")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("CAP")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Cognome")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Comune")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Indirizzo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("LastModifiedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Provincia")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RagioneSociale")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("PartitaIVA");
-
-                    b.ToTable("Clienti");
-                });
-
-            modelBuilder.Entity("StarterProject.Database.Entities.ExternalSalesInfo", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("LogoPath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PartitaIVA")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RagioneSociale")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("InfoCommercialiEsterni");
-                });
-
-            modelBuilder.Entity("StarterProject.Database.Entities.Listino", b =>
-                {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Listini");
-                });
-
-            modelBuilder.Entity("StarterProject.Database.Entities.ListinoDettaglio", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<double>("KWp")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Prezzo")
-                        .HasColumnType("float");
-
-                    b.Property<int>("Provvigione")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ListiniDettaglio");
-                });
-
             modelBuilder.Entity("StarterProject.Database.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -708,28 +589,6 @@ namespace StarterProject.Migrations
                     b.Navigation("AuditLog");
                 });
 
-            modelBuilder.Entity("StarterProject.Database.Entities.ExternalSalesInfo", b =>
-                {
-                    b.HasOne("StarterProject.Database.Entities.User", "User")
-                        .WithOne("InfoCommercialeEsterno")
-                        .HasForeignKey("StarterProject.Database.Entities.ExternalSalesInfo", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("StarterProject.Database.Entities.ListinoDettaglio", b =>
-                {
-                    b.HasOne("StarterProject.Database.Entities.Listino", "Listino")
-                        .WithOne("Dettaglio")
-                        .HasForeignKey("StarterProject.Database.Entities.ListinoDettaglio", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listino");
-                });
-
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
                 {
                     b.Navigation("Authorizations");
@@ -747,15 +606,8 @@ namespace StarterProject.Migrations
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("StarterProject.Database.Entities.Listino", b =>
-                {
-                    b.Navigation("Dettaglio");
-                });
-
             modelBuilder.Entity("StarterProject.Database.Entities.User", b =>
                 {
-                    b.Navigation("InfoCommercialeEsterno");
-
                     b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
