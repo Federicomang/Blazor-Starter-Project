@@ -1,0 +1,44 @@
+﻿@page "/users/edit/{Id}"
+@rendermode InteractiveWebAssembly
+@inject IStringLocalizer<CreateUser> _localizer
+@attribute [Authorize]
+@using StarterProject.Client.Infrastructure
+
+@if(User != null)
+{
+    <div>
+        <MudPaper Class="mt-4">
+            <EditForm Model="User" OnValidSubmit="SaveAsync">
+                <FluentValidator />
+                <MudGrid Spacing="4" Class="px-4 mt-4">
+                    <MudItem xs="6" md="6">
+                        <MudTextField Label="@_localizer["Name"]" For="() => User.UserInfo.Name" @bind-Value="User.UserInfo.Name" />
+                    </MudItem>
+                    <MudItem xs="6" md="6">
+                        <MudTextField Label="@_localizer["Surname"]" For="() => User.UserInfo.Surname" @bind-Value="User.UserInfo.Surname" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudTextField Label="@_localizer["Email"]" For="() => User.UserInfo.Email" @bind-Value="User.UserInfo.Email" />
+                    </MudItem>
+                    <MudItem xs="6" md="4">
+                        <MudTextField Label="@_localizer["Phone Number"]" For="() => User.UserInfo.PhoneNumber" @bind-Value="User.UserInfo.PhoneNumber" />
+                    </MudItem>
+                    <MudItem xs="6" md="4">
+                        @if (MyRoles != null)
+                        {
+                            <MudSelect T="string" Label="@_localizer["Roles"]" For="() => User.RolesStr" @bind-SelectedValues="User.UserInfo.Roles">
+                                @foreach (var role in ApplicationRoles.GetSelectableRoles(MyRoles))
+                                {
+                                    <MudSelectItem Value="@role">@role</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                    </MudItem>
+                </MudGrid>
+                <div class="d-flex justify-end pa-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@_globalLocalizer["Edit"]</MudButton>
+                </div>
+            </EditForm>
+        </MudPaper>
+    </div>
+}

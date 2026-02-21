@@ -1,0 +1,22 @@
+﻿@rendermode InteractiveWebAssembly
+
+<MudNavMenu>
+
+    <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+    <MudNavLink Href="/users">Users</MudNavLink>
+    <MudNavLink Href="/identity/changePassword">Change Password</MudNavLink>
+
+    @*
+        <AuthorizeView>
+        <Authorized>
+            <MudNavGroup Title="Authenticated Functions">
+                <MudNavLink Href="/weather">Weather</MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+        <NotAuthorized>
+            <MudNavLink Href="/login">Login</MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+    *@
+
+</MudNavMenu>

@@ -1,0 +1,15 @@
+﻿@rendermode InteractiveServer
+
+@if (Constants.ApplicationRenderType != RenderType.Client || RendererInfo.IsInteractive)
+{
+    <MudThemeProvider Theme="Theme" />
+    <MudPopoverProvider />
+    <MudDialogProvider />
+    <MudSnackbarProvider />
+    <EventManagerProvider />
+}
+
+@code {
+    [Parameter]
+    public MudTheme Theme { get; set; }
+}

@@ -1,0 +1,77 @@
+﻿@page "/login"
+@* @layout MainLayout *@
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+
+@*
+    Se non si inserisce rendermode la pagina è statica
+
+    @rendermode InteractiveServer
+
+    --- Se si inseriscono le seguenti rendermode la pagina va' inserita nel progetto Client ---
+
+    @rendermode InteractiveWebAssembly
+    @rendermode InteractiveAuto
+*@
+<style>
+    .login {
+        background-image: url('@_background');
+        background-position: center center;
+        background-size: cover;
+    }
+</style>
+<AuthorizeView>
+    <Authorized>
+        <Redirect To="@GetReturnUrl()" />
+    </Authorized>
+    <NotAuthorized>
+        <MudAppBar Elevation="4" Color="Color.Primary">
+
+        </MudAppBar>
+
+        <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center" Style="height: 100vh;">
+            <MudPaper Elevation="25" Class="pa-8" Style="border-radius:20px">
+                <EditForm Model="Data" OnValidSubmit="HandleSubmit" FormName="login-form" Context="form">
+                    <FluentValidator />
+                    <MudGrid Class="login-form">
+                        <MudItem xs="12" Class="@_marginLogo">
+                            <div class="d-flex justify-center">
+                                <img src="@_logo" height="150" />
+                            </div>
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-center mt-n3">
+                            <MudText Typo="Typo.body2">© @year - @_payoff</MudText>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Username" Margin="Margin.Dense" InputType="InputType.Email" @bind-Value="Data.Username" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Email" OnAdornmentClick="Service" AutoFocus="true" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Password" Margin="Margin.Dense" @bind-Value="Data.Password" InputType="@_passwordInput" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" OnAdornmentClick="TogglePasswordVisibility" />
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-space-between align-center mt-n5">
+                            <MudCheckBox T="bool" Label="Ricordati di me" Color="Color.Primary" @bind-Value="Data.IsPersistent"/>
+                            <MudLink Href="/account/forgot-password" Typo="Typo.body2">Password dimenticata?</MudLink>
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-center mt-n5">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="width: 100%;">Accedi</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </EditForm>
+                @if(ErrorMessages.Count > 0)
+                {
+                    <div class="d-flex justify-center mt-2">
+                        @foreach(var errorMessage in ErrorMessages)
+                        {
+                            <MudText Color="Color.Error">@errorMessage</MudText>
+                        }
+                    </div>
+                }
+            </MudPaper>
+        </MudContainer>
+     
+    </NotAuthorized>
+</AuthorizeView>
