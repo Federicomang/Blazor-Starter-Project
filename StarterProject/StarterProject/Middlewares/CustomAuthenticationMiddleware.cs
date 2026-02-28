@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using OpenIddict.Abstractions;
 using StarterProject.Database.Entities;
-using StarterProject.Extensions;
+using StarterProject.Database.Entities.OpenIddict;
 using StarterProject.Tools;
 using System.Security.Claims;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -16,10 +16,9 @@ namespace StarterProject.Middlewares
         RoleManager<IdentityRole> roleManager,
         IMemoryCache cache) : IMiddleware
     {
-        private async Task<(bool isApplication, User? user)> GetUserAndPopulateItems(HttpContext httpContext, string identifier)
+        private async Task<(bool isApplication, User? user)> GetUserAndPopulateItems(HttpContext httpContext, string tokenType, string identifier)
         {
-            var httpContextItems = httpContext.GetItems();
-            if (httpContextItems.AuthenticationScheme == IdentityConstants.ApplicationScheme)
+            if (tokenType == GrantTypes.ClientCredentials)
             {
                 var client = await applicationManager.FindByClientIdAsync(identifier);
                 httpContext.Items[HttpContextItems.DATA_PREFIX + nameof(HttpContextItems.ApplicationId)] = client == null ? null : identifier;
@@ -35,37 +34,45 @@ namespace StarterProject.Middlewares
 
         private class InternalCheck
         {
-            public required User User { get; set; }
+            public bool AddIdentityClaims { get; set; } = false;
 
-            public required ClaimsIdentity Identity { get; set; }
+            public User? User { get; set; }
+
+            public ClaimsIdentity? Identity { get; set; }
+
+            public List<Claim> Claims { get; set; } = [];
         }
 
-        private async Task<InternalCheck?> Check(HttpContext context, ClaimsPrincipal principal)
+        private async Task<InternalCheck> Check(HttpContext context, ClaimsPrincipal principal)
         {
+            var result = new InternalCheck();
+
             if (principal.Identity?.IsAuthenticated != true)
-                return null;
+                return result;
 
             if (principal.Identity is not ClaimsIdentity identity)
-                return null;
+                return result;
 
             var identifier = identity.FindFirst(Claims.Subject)?.Value;
 
             if (string.IsNullOrEmpty(identifier))
-                return null;
+                return result;
 
-            var (isApplication, user) = await GetUserAndPopulateItems(context, identifier);
+            var tokenType = identity.FindFirst(CustomClaims.OidGrantType)?.Value;
+
+            if (string.IsNullOrEmpty(tokenType))
+                return result;
+
+            var (isApplication, user) = await GetUserAndPopulateItems(context, tokenType, identifier);
+            result.Identity = identity;
+            result.User = user;
+            result.Claims.Add(new Claim(CustomClaims.AuthIdentifier, isApplication ? OpenIddictApplication.AuthIdentifier : User.AuthIdentifier));
 
             if (isApplication || user == null)
-                return null;
+                return result;
 
-            if (!identity.HasClaim(CustomClaims.OidGrantType, GrantTypes.Password))
-                return null;
-
-            return new()
-            {
-                User = user,
-                Identity = identity
-            };
+            result.AddIdentityClaims = tokenType == GrantTypes.Password;
+            return result;
         }
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -74,10 +81,10 @@ namespace StarterProject.Middlewares
 
             var result = await Check(context, principal);
 
-            if (result != null)
+            if (result.AddIdentityClaims)
             {
                 // Cache key
-                var cacheKey = $"claims_{result.User.Id}_{result.User.SecurityStamp}";
+                var cacheKey = $"claims_{result.User!.Id}_{result.User.SecurityStamp}";
 
                 // Get from cache or create
                 var cached = await cache.GetOrCreateAsync(cacheKey, async entry =>
@@ -105,9 +112,14 @@ namespace StarterProject.Middlewares
 
                 foreach (var claim in cached!)
                 {
-                    if (!result.Identity.HasClaim(claim.Type, claim.Value))
+                    if (!result.Identity!.HasClaim(claim.Type, claim.Value))
                         result.Identity.AddClaim(claim);
                 }
+            }
+
+            foreach(var claim in result.Claims)
+            {
+                result.Identity!.AddClaim(claim);
             }
 
             await next(context);
