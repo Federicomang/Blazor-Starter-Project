@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using StarterProject.Attributes.ExtendedAudit;
 using StarterProject.Database.Entities;
+using StarterProject.Database.Entities.OpenIddict;
 using StarterProject.Extensions;
 using System.Reflection;
 
-namespace StarterProject.Database
+namespace StarterProject.Database.Interceptors
 {
-    public class DbContextSaveChangesInterceptor(IHttpContextAccessor httpContextAccessor) : SaveChangesInterceptor
+    public class DbContextAuditInterceptor(IHttpContextAccessor httpContextAccessor) : SaveChangesInterceptor
     {
         private readonly List<(string TempToken, EntityEntry Entry)> _pendingEntityIdFixups = [];
 
@@ -69,7 +70,7 @@ namespace StarterProject.Database
                 .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
                 .ToList();
 
-            var (table, currentId) = GetCurrentIdentifier();
+            var currentId = GetCurrentIdentifier(context);
 
             foreach (var entry in entries)
             {
@@ -86,16 +87,13 @@ namespace StarterProject.Database
                         case EntityState.Added:
                             entity.CreatedOn = utcNow;
                             entity.CreatedBy = currentId!;
-                            entity.TableThatCreated = table!;
                             break;
 
                         case EntityState.Modified:
                             entity.CreatedOn = entry.OriginalValues.GetValue<DateTime>(nameof(IAuditableEntity.CreatedOn));
                             entity.CreatedBy = entry.OriginalValues.GetValue<string>(nameof(IAuditableEntity.CreatedBy));
-                            entity.TableThatCreated = entry.OriginalValues.GetValue<string>(nameof(IAuditableEntity.TableThatCreated));
                             entity.LastModifiedOn = utcNow;
                             entity.LastModifiedBy = currentId;
-                            entity.TableThatModified = table;
                             break;
                     }
                 }
@@ -128,8 +126,7 @@ namespace StarterProject.Database
                     EntityId = entityId,
                     Action = action,
                     ChangedOn = utcNow,
-                    ChangedBy = currentId,
-                    TableThatChanged = table
+                    ChangedBy = currentId
                 };
 
                 var isEdited = entry.State == EntityState.Modified;
@@ -170,24 +167,27 @@ namespace StarterProject.Database
             }
         }
 
-        private (string? table, string? entityId) GetCurrentIdentifier()
+        private string? GetCurrentIdentifier(DbContext dbContext)
         {
             var httpContext = httpContextAccessor.HttpContext;
+            string? identifier = null;
             if (httpContext != null)
             {
                 var httpContextItems = httpContext.GetItems();
                 if (httpContextItems.AuthenticationScheme == IdentityConstants.ApplicationScheme)
                 {
-                    var applicationId = httpContext.GetItems().ApplicationId;
-                    return (ApplicationDbContext.AUDIT_TABLE_APPLICATION, applicationId);
+                    var applicationId = httpContextItems.ApplicationId;
+                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == OpenIddictApplication.AuthIdentifier && x.IdentifierId == applicationId)
+                        .Select(x => x.Id).FirstOrDefault();
                 }
                 else
                 {
-                    var user = httpContext.GetItems().User;
-                    return (ApplicationDbContext.AUDIT_TABLE_USER, user?.Id);
+                    var userId = httpContextItems.User?.Id;
+                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == User.AuthIdentifier && x.IdentifierId == userId)
+                        .Select(x => x.Id).FirstOrDefault();
                 }
             }
-            return (null, null);
+            return identifier;
         }
 
         private static string GetEntityIdString(PropertyEntry pkProp, out string? tempToken)

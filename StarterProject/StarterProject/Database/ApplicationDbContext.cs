@@ -1,20 +1,18 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using OpenIddict.EntityFrameworkCore.Models;
 using StarterProject.Database.Entities;
-using System.Reflection.Emit;
+using StarterProject.Database.Entities.OpenIddict;
 
 namespace StarterProject.Database
 {
-    public class ApplicationDbContext(DbContextOptions options) : IdentityDbContext<User,IdentityRole, string>(options)
+    public class ApplicationDbContext(DbContextOptions options) : IdentityDbContext<User, IdentityRole, string>(options)
     {
         private const string IDENTITY_SCHEMA = "identity";
-        internal const string AUDIT_TABLE_USER = "user";
-        internal const string AUDIT_TABLE_APPLICATION = "application";
 
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<AuditLogDetail> AuditLogDetails { get; set; }
+        public DbSet<Identifier> Identifiers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -50,10 +48,11 @@ namespace StarterProject.Database
             builder.Entity<IdentityUserLogin<string>>().ToTable("AspNetUserLogins", IDENTITY_SCHEMA);
             builder.Entity<IdentityRoleClaim<string>>().ToTable("AspNetRoleClaims", IDENTITY_SCHEMA);
             builder.Entity<IdentityUserToken<string>>().ToTable("AspNetUserTokens", IDENTITY_SCHEMA);
-            builder.Entity<OpenIddictEntityFrameworkCoreApplication>().ToTable("OpenIddictApplications", IDENTITY_SCHEMA);
-            builder.Entity<OpenIddictEntityFrameworkCoreAuthorization>().ToTable("OpenIddictAuthorizations", IDENTITY_SCHEMA);
-            builder.Entity<OpenIddictEntityFrameworkCoreScope>().ToTable("OpenIddictScopes", IDENTITY_SCHEMA);
-            builder.Entity<OpenIddictEntityFrameworkCoreToken>().ToTable("OpenIddictTokens", IDENTITY_SCHEMA);
+            builder.Entity<OpenIddictApplication>().ToTable("OpenIddictApplications", IDENTITY_SCHEMA);
+            builder.Entity<OpenIddictAuthorization>().ToTable("OpenIddictAuthorizations", IDENTITY_SCHEMA);
+            builder.Entity<OpenIddictScope>().ToTable("OpenIddictScopes", IDENTITY_SCHEMA);
+            builder.Entity<OpenIddictToken>().ToTable("OpenIddictTokens", IDENTITY_SCHEMA);
+            builder.Entity<Identifier>().ToTable(nameof(Identifiers), IDENTITY_SCHEMA);
         }
     }
 }

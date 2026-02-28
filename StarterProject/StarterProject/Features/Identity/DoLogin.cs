@@ -98,10 +98,15 @@ namespace StarterProject.Features.Identity
                     var user = await GetUser(request.Username!);
                     if(user != null)
                     {
-                        var isPersistent = (bool)request["is_persistent"].GetValueOrDefault(false);
-                        var signInResult = await signInManager.PasswordSignInAsync(user, request.Password!, isPersistent, false);
+                        var signInResult = await signInManager.CheckPasswordSignInAsync(user, request.Password!, false);
                         if (signInResult.Succeeded)
                         {
+                            var isPersistent = (bool)request["is_persistent"].GetValueOrDefault(false);
+                            var additionalClaims = new List<Claim>()
+                            {
+                                new(CustomClaims.OidGrantType, request.GrantType)
+                            };
+                            await signInManager.SignInWithClaimsAsync(user, isPersistent, additionalClaims);
                             return FeatureResponse<IResult>.AsSuccess(Results.Ok());
                         }
                     }
@@ -117,6 +122,7 @@ namespace StarterProject.Features.Identity
 
                     // Rimuovi gli scope OIDC, imposta solo quelli API
                     principal.SetScopes("api", Scopes.OfflineAccess); // OfflineAccess = abilita refresh token
+                    principal.SetClaim(CustomClaims.OidGrantType, request.GrantType);
                     principal.SetClaim(Claims.Subject, user.Id);
                 }
                 else if (request.GrantType == GrantTypes.RefreshToken)
@@ -132,7 +138,7 @@ namespace StarterProject.Features.Identity
                     // es: principal.SetClaim("last_refreshed", DateTime.UtcNow.ToString("o"));
 
                     // Reimposta gli scope
-                    principal.SetScopes("api", Scopes.OfflineAccess);
+                    //principal.SetScopes("api", Scopes.OfflineAccess);
                 }
                 else if (request.GrantType == GrantTypes.ClientCredentials)
                 {
@@ -166,6 +172,7 @@ namespace StarterProject.Features.Identity
                     identity.AddClaim(Claims.Name, (await applicationManager.GetDisplayNameAsync(application))!);
 
                     principal = new ClaimsPrincipal(identity);
+                    principal.SetClaim(CustomClaims.OidGrantType, request.GrantType);
                     principal.SetScopes(request.GetScopes());
                 }
 
@@ -175,7 +182,6 @@ namespace StarterProject.Features.Identity
                 }
                 else
                 {
-                    principal.SetClaim(CustomClaims.OidGrantType, request.GrantType);
                     principal.Claims.First(x => x.Type == CustomClaims.OidGrantType).SetDestinations(Destinations.AccessToken);
                     return FeatureResponse<IResult>.AsSuccess(Results.SignIn(principal, null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme));
                 }

@@ -67,7 +67,7 @@ namespace StarterProject.Features.Identity
                 filter = filter.And(x => !x.Roles.Any(r => r.Name == ApplicationRoles.Superadmin));
             }
             filter = filter.And(x => x.Id == request.UserId);
-            var query = dbContext.Users.Filter(filter, null, ClientModelsExpressions.CreateInfoFromUser);
+            var query = dbContext.Users.Filter(filter, null, User.CreateInfoFromEntity);
             return await query.FirstOrDefaultAsync(cancellationToken);
         }
 

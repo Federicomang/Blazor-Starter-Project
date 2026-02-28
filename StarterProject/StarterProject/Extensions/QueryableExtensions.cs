@@ -7,11 +7,11 @@ namespace StarterProject.Extensions
 {
     public static class QueryableExtensions
     {
-        public static async Task<PagedResponse<T>> ToPaginatedListAsync<T>(this IQueryable<T> source, int pageNumber, int pageSize) where T : class
+        public static async Task<PagedResponse<T>> ToPaginatedListAsync<T>(this IQueryable<T> source, int pageNumber, int pageSize, CancellationToken cancellationToken = default) where T : class
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            int count = await source.CountAsync();
-            var items = await PaginateQuery(source, pageNumber, pageSize).ToListAsync();
+            int count = await source.CountAsync(cancellationToken);
+            var items = await PaginateQuery(source, pageNumber, pageSize).ToListAsync(cancellationToken);
             return new PagedResponse<T>()
             {
                 Items = items,

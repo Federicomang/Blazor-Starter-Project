@@ -15,6 +15,8 @@ using StarterProject.Client.Features;
 using StarterProject.Client.Features.Identity;
 using StarterProject.Database;
 using StarterProject.Database.Entities;
+using StarterProject.Database.Entities.OpenIddict;
+using StarterProject.Database.Interceptors;
 using StarterProject.Extensions;
 using StarterProject.Features;
 using StarterProject.Infrastructure.Hangfire;
@@ -139,7 +141,8 @@ builder.Services.AddOpenIddict()
     .AddCore(opt =>
     {
         opt.UseEntityFrameworkCore()
-           .UseDbContext<ApplicationDbContext>();
+           .UseDbContext<ApplicationDbContext>()
+           .ReplaceDefaultEntities<OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken, string>();
     })
     .AddServer(opt =>
     {
@@ -156,14 +159,14 @@ builder.Services.AddOpenIddict()
         // === AGGIUNTA CUSTOM GRANT TYPE ===
         foreach (var field in typeof(CustomGrants).GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
         {
-            if(field.FieldType == typeof(string))
+            if (field.FieldType == typeof(string))
             {
                 var value = field.IsLiteral
                     ? field.GetRawConstantValue()
                     : field.IsInitOnly
                         ? field.GetValue(null)
                         : null;
-                if(value != null && value is string customGrant)
+                if (value != null && value is string customGrant)
                 {
                     opt.AllowCustomFlow(customGrant);
                 }
@@ -175,7 +178,7 @@ builder.Services.AddOpenIddict()
         opt.UseReferenceRefreshTokens();    // <--- refresh token referenziati
 
         // === SCOPES ===
-        opt.RegisterScopes("api", OpenIddictConstants.Scopes.OfflineAccess);
+        opt.RegisterScopes(ApplicationScopes.GetAllScopes());
 
         // === CLIENT RISERVATI ===
         opt.AcceptAnonymousClients(); // mantieni se hai SPA native
@@ -227,7 +230,8 @@ builder.Services.AddSharedServices();
 
 builder.Services.AddScoped<IServerFeatureService, ServerFeatureService>();
 builder.Services.AddScoped<CustomAuthenticationMiddleware>();
-builder.Services.AddScoped<DbContextSaveChangesInterceptor>();
+builder.Services.AddScoped<DbContextAuditInterceptor>();
+builder.Services.AddScoped<DbContextIdentifierInterceptor>();
 
 if (proxyEnabled)
 {
@@ -264,8 +268,12 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-        .AddInterceptors(sp.GetRequiredService<DbContextSaveChangesInterceptor>());
-    options.UseOpenIddict();
+        .AddInterceptors
+        (
+            sp.GetRequiredService<DbContextIdentifierInterceptor>(),
+            sp.GetRequiredService<DbContextAuditInterceptor>()
+        );
+    options.UseOpenIddict<OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken, string>();
 });
 
 // Add Hangfire services.
@@ -302,8 +310,10 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     RequestCultureProviders = [new HybridRequestCultureProvider()]
 });
 
+app.UseWebSockets();
 app.UseRouting();
 
+app.UseMiddleware<QueryParameterTokenMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<CustomAuthenticationMiddleware>();
 app.UseAuthorization();

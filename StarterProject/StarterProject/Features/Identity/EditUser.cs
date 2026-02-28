@@ -30,7 +30,7 @@ namespace StarterProject.Features.Identity
                 if(result.Succeeded)
                 {
                     var userInfo = await dbContext.Users.Where(x => x.Id == user.Id)
-                        .Select(ClientModelsExpressions.CreateInfoFromUser)
+                        .Select(User.CreateInfoFromEntity)
                         .FirstOrDefaultAsync(cancellationToken);
                     var responseData = new Response()
                     {

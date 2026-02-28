@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using StarterProject.Client.Features;
 using StarterProject.Client.Features.Identity.Models;
 using StarterProject.Client.Infrastructure;
@@ -62,13 +61,10 @@ namespace StarterProject.Features.Identity
             }
             if(!string.IsNullOrEmpty(request.SearchString))
             {
-                var searchString = request.SearchString.ToLower();
-                filter = filter.And(x => (x.UserName == null ? false : x.UserName.ToLower().Contains(searchString))
-                    || (x.Email == null ? false : x.Email.ToLower().Contains(searchString))
-                    || (x.PhoneNumber == null ? false : x.PhoneNumber.ToLower().Contains(searchString)));
+                filter = filter.And(User.SearchFilter(request.SearchString));
             }
-            var query = dbContext.Users.Filter(filter, request.OrderBy, ClientModelsExpressions.CreateInfoFromUser);
-            return await query.ToPaginatedListAsync(request.PageNumber, request.PageSize);
+            var query = dbContext.Users.Filter(filter, request.OrderBy, User.CreateInfoFromEntity);
+            return await query.ToPaginatedListAsync(request.PageNumber, request.PageSize, cancellationToken);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)

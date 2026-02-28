@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace StarterProject.Database.Entities // cambia namespace come preferisci
+namespace StarterProject.Database.Entities
 {
     [Table("AuditLog", Schema = "History")]
     public class AuditLog
@@ -24,8 +24,6 @@ namespace StarterProject.Database.Entities // cambia namespace come preferisci
         public DateTime ChangedOn { get; set; }
 
         public string? ChangedBy { get; set; }
-
-        public string? TableThatChanged { get; set; }
 
         public string? HostName { get; set; }
 
