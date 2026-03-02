@@ -20,8 +20,8 @@ namespace StarterProject.Middlewares
         {
             if (tokenType == GrantTypes.ClientCredentials)
             {
-                var client = await applicationManager.FindByClientIdAsync(identifier);
-                httpContext.Items[HttpContextItems.DATA_PREFIX + nameof(HttpContextItems.ApplicationId)] = client == null ? null : identifier;
+                var client = (OpenIddictApplication?)await applicationManager.FindByClientIdAsync(identifier);
+                httpContext.Items[HttpContextItems.DATA_PREFIX + nameof(HttpContextItems.Application)] = client;
                 return (true, null);
             }
             else

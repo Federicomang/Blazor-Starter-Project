@@ -1,4 +1,5 @@
 ﻿using StarterProject.Database.Entities;
+using StarterProject.Database.Entities.OpenIddict;
 
 namespace StarterProject.Extensions
 {
@@ -15,7 +16,7 @@ namespace StarterProject.Extensions
 
             public User? User => GetItem<User>(nameof(User));
 
-            public string? ApplicationId => GetItem<string>(nameof(ApplicationId));
+            public OpenIddictApplication? Application => GetItem<OpenIddictApplication>(nameof(Application));
         }
 
         public static HttpContextItems GetItems(this HttpContext httpContext)

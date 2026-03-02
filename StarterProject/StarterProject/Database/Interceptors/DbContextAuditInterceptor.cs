@@ -174,16 +174,16 @@ namespace StarterProject.Database.Interceptors
             if (httpContext != null)
             {
                 var httpContextItems = httpContext.GetItems();
-                if (httpContextItems.AuthenticationScheme == IdentityConstants.ApplicationScheme)
+                var application = httpContextItems.Application;
+                if (application == null)
                 {
-                    var applicationId = httpContextItems.ApplicationId;
-                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == OpenIddictApplication.AuthIdentifier && x.IdentifierId == applicationId)
+                    var userId = httpContextItems.User?.Id;
+                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == User.AuthIdentifier && x.IdentifierId == userId)
                         .Select(x => x.Id).FirstOrDefault();
                 }
                 else
                 {
-                    var userId = httpContextItems.User?.Id;
-                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == User.AuthIdentifier && x.IdentifierId == userId)
+                    identifier = dbContext.Set<Identifier>().Where(x => x.IdentifierKey == OpenIddictApplication.AuthIdentifier && x.IdentifierId == application.Id)
                         .Select(x => x.Id).FirstOrDefault();
                 }
             }
