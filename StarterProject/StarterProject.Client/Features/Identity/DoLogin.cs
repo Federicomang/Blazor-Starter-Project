@@ -36,6 +36,9 @@ namespace StarterProject.Client.Features.Identity
             [JsonPropertyName("is_persistent")]
             [DefaultValue(false)]
             public virtual bool IsPersistent { get; set; } //Only for cookie
+
+            [JsonPropertyName("refresh_token")]
+            public virtual string RefreshToken { get; set; }
         }
 
         public class Response
