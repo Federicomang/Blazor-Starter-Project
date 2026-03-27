@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using OpenIddict.Abstractions;
 using StarterProject.Client.Features.Identity;
 
 namespace StarterProject.Client.Pages.Identity
@@ -19,7 +20,7 @@ namespace StarterProject.Client.Pages.Identity
         private string _background = "/images/sfondo.jpg";
 
 
-        protected override void OnInitialized() => Data ??= new() { GrantType = "cookie", Scope = "api" };
+        protected override void OnInitialized() => Data ??= new() { GrantType = OpenIddictConstants.GrantTypes.Password, Scope = "api", IsCookie = true };
         private string _logo = "/images/logo.png";
         private string _marginLogo = "mt-n0";
         private string year = DateTime.Now.Year.ToString();

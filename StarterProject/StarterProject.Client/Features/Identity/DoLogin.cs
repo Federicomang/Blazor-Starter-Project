@@ -33,6 +33,10 @@ namespace StarterProject.Client.Features.Identity
             [Required]
             public virtual string Scope { get; set; }
 
+            [JsonPropertyName("is_cookie")]
+            [DefaultValue(false)]
+            public virtual bool IsCookie { get; set; }
+
             [JsonPropertyName("is_persistent")]
             [DefaultValue(false)]
             public virtual bool IsPersistent { get; set; } //Only for cookie

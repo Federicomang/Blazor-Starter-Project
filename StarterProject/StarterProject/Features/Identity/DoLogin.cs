@@ -30,6 +30,9 @@ namespace StarterProject.Features.Identity
     {
         public class ServerRequest : Request //Non mappo gli altri campi poichè vengono
         {
+            [FromForm(Name = "is_cookie")]
+            public override bool IsCookie { get; set; }
+
             [FromForm(Name = "is_persistent")]
             public override bool IsPersistent { get; set; } //Only for cookie
         }
@@ -91,26 +94,7 @@ namespace StarterProject.Features.Identity
                     return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid request" }), ["Invalid request"]);
                 }
 
-                if(request.GrantType == CustomGrants.Cookie)
-                {
-                    var user = await GetUser(request.Username!);
-                    if(user != null)
-                    {
-                        var signInResult = await signInManager.CheckPasswordSignInAsync(user, request.Password!, false);
-                        if (signInResult.Succeeded)
-                        {
-                            var isPersistent = (bool)request["is_persistent"].GetValueOrDefault(false);
-                            var additionalClaims = new List<Claim>()
-                            {
-                                new(CustomClaims.OidGrantType, request.GrantType)
-                            };
-                            await signInManager.SignInWithClaimsAsync(user, isPersistent, additionalClaims);
-                            return FeatureResponse<IResult>.AsSuccess(Results.Ok());
-                        }
-                    }
-                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid credentials" }), ["Invalid credentials"]);
-                }
-                else if (request.GrantType == GrantTypes.Password)
+                if (request.GrantType == GrantTypes.Password)
                 {
                     var user = await GetUser(request.Username!);
                     if (user == null || !await userManager.CheckPasswordAsync(user, request.Password!))
@@ -180,8 +164,21 @@ namespace StarterProject.Features.Identity
                 }
                 else
                 {
-                    principal.Claims.First(x => x.Type == CustomClaims.OidGrantType).SetDestinations(Destinations.AccessToken);
-                    return FeatureResponse<IResult>.AsSuccess(Results.SignIn(principal, null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme));
+                    var isCookie = (bool)request["is_cookie"].GetValueOrDefault(false);
+                    if(isCookie)
+                    {
+                        var isPersistent = (bool)request["is_persistent"].GetValueOrDefault(false);
+                        var properties = new AuthenticationProperties()
+                        {
+                            IsPersistent = isPersistent
+                        };
+                        return FeatureResponse<IResult>.AsSuccess(Results.SignIn(principal, properties, IdentityConstants.ApplicationScheme));
+                    }
+                    else
+                    {
+                        principal.Claims.First(x => x.Type == CustomClaims.OidGrantType).SetDestinations(Destinations.AccessToken);
+                        return FeatureResponse<IResult>.AsSuccess(Results.SignIn(principal, null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme));
+                    }
                 }
             }
             catch (Exception ex)
