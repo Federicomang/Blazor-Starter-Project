@@ -5,7 +5,7 @@ namespace StarterProject.Features.Private
 {
     public class EventManager : ClientEventManager, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<FeatureService.EmptyResponse>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public override async Task<FeatureResponse<FeatureService.EmptyResponse>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             return FeatureResponse<FeatureService.EmptyResponse>.AsSuccess(new());
         }

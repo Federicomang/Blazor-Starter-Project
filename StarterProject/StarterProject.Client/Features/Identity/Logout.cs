@@ -18,14 +18,14 @@ namespace StarterProject.Client.Features.Identity
             HttpClient = client;
         }
 
-        public async Task<FeatureResponse<Response>> HandleClient(Request request, CancellationToken cancellationToken = default)
+        public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
             var response = await HttpClient!.PostAsync(ApiPath, content, cancellationToken);
             return FeatureResponse<Response>.Create(response.IsSuccessStatusCode, new());
         }
 
-        public virtual Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public virtual Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

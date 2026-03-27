@@ -79,6 +79,7 @@ namespace StarterProject.Client.Features.Private
         protected readonly List<EventData> Events = [];
 
         private readonly HttpClient? HttpClient;
+        private readonly IServiceProvider ServiceProvider;
 
         public const string ApiPath = "/api/internal/event/send";
         public const string ApiEventPath = "/api/internal/event/pipe";
@@ -86,9 +87,10 @@ namespace StarterProject.Client.Features.Private
 
         protected EventManager() { }
 
-        public EventManager(IHttpClientFactory httpClientFactory)
+        public EventManager(IHttpClientFactory httpClientFactory, IServiceProvider serviceProvider)
         {
             HttpClient = httpClientFactory.CreateClient(Constants.DefaultHttpClientName);
+            ServiceProvider = serviceProvider;
         }
 
         private bool Subscribe<T>(string eventName, Delegate function, EventType pipeToListen, string ? identifier)
@@ -200,14 +202,9 @@ namespace StarterProject.Client.Features.Private
                 JsonData = JsonSerializer.Serialize(data),
                 PipeToSend = pipeToSend
             };
-            if(IsClientEnvironment)
-            {
-                await HandleClient(request);
-            }
-            else
-            {
-                await HandleServer(request);
-            }
+            using var scope = ServiceProvider!.CreateScope();
+            var featureService = scope.ServiceProvider.GetRequiredService<IFeatureService>();
+            await featureService.Run(request);
         }
 
         public void Publish<T>(string eventName, T? data, EventType pipeToSend = EventType.Both)
@@ -240,7 +237,7 @@ namespace StarterProject.Client.Features.Private
             return await res.AsFeatureResponse<EmptyResponse>();
         }
 
-        public async Task<FeatureResponse<EmptyResponse>> HandleClient(Request request, CancellationToken cancellationToken = default)
+        public async Task<FeatureResponse<EmptyResponse>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             List<Task<FeatureResponse<EmptyResponse>>> tasks = [];
             if(request.PipeToSend == EventType.Client || request.PipeToSend == EventType.Both)
@@ -262,7 +259,7 @@ namespace StarterProject.Client.Features.Private
             }
         }
 
-        public virtual Task<FeatureResponse<EmptyResponse>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public virtual Task<FeatureResponse<EmptyResponse>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

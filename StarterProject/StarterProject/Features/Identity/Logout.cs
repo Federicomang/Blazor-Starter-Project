@@ -14,7 +14,7 @@ namespace StarterProject.Features.Identity
 {
     public class Logout(IHttpContextAccessor httpContextAccessor, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var httpContext = httpContextAccessor.HttpContext!;
             if(httpContext.IsSocketConnection())

@@ -34,12 +34,12 @@ namespace StarterProject.Features.Identity.Shared
             }
         }
 
-        public Task<FeatureResponse<Response>> HandleClient(Request request, CancellationToken cancellationToken = default)
+        public Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var thisUser = httpContextAccessor.HttpContext?.GetItems().User;
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client.Features;
 using StarterProject.Client.Infrastructure;
@@ -9,9 +10,14 @@ using ClientCreateUser = StarterProject.Client.Features.Identity.CreateUser;
 
 namespace StarterProject.Features.Identity
 {
-    public class CreateCustomer(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientCreateUser, IBaseFeatureEndpoint
+    public class CreateCustomer(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientCreateUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        private static void BuildPolicy(AuthorizationPolicyBuilder policy)
+        {
+            policy.RequireRole(ApplicationRoles.Superadmin, ApplicationRoles.Administrator);
+        }
+
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             FeatureResponse<Response> response;
             int statusCode;
@@ -73,10 +79,9 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(request);
                 await context.ApplyApiFeatureResponse();
-            }).RequireAuthorization(policy =>
-            {
-                policy.RequireRole(ApplicationRoles.Superadmin, ApplicationRoles.Administrator);
-            });
+            }).RequireAuthorization(BuildPolicy);
         }
+
+        void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
     }
 }

@@ -23,9 +23,10 @@ namespace StarterProject.Client.Features
                 CancellationToken = cancellationToken;
             }
 
-            public async Task<FeatureResponse<T>> Handle()
+            public async Task<FeatureResponse<T>> Handle(IFeatureContext featureContext)
             {
-                var res = await Feature.HandleClient(Request, CancellationToken);
+                featureContext.FeatureChain.Add(Request);
+                var res = await Feature.HandleClient(Request, featureContext, CancellationToken);
                 return res.ConvertTo<T>();
             }
         }
@@ -43,14 +44,15 @@ namespace StarterProject.Client.Features
                 CancellationToken = cancellationToken;
             }
 
-            public async Task<FeatureResponse<T>> Handle()
+            public async Task<FeatureResponse<T>> Handle(IFeatureContext featureContext)
             {
-                var res = await Feature.HandleServer(Request, CancellationToken);
+                featureContext.FeatureChain.Add(Request);
+                var res = await Feature.HandleServer(Request, featureContext, CancellationToken);
                 return res.ConvertTo<T>();
             }
         }
 
-        private async Task<FeatureResponse<Response>> Run<Response>(Type requestType, IBaseFeatureRequest<Response> request, CancellationToken cancellationToken = default) where Response : class
+        private async Task<FeatureResponse<Response>> Run<Response>(Type requestType, IBaseFeatureRequest<Response> request, IFeatureContext? featureContext, CancellationToken cancellationToken = default) where Response : class
         {
             var handlerType = ReflectionTools.GetGenericType(typeof(IBaseFeature<,>), requestType, typeof(Response));
             var handler = (IBaseFeature)serviceProvider.GetRequiredService(handlerType);
@@ -58,7 +60,7 @@ namespace StarterProject.Client.Features
             if (IsClientEnvironment)
             {
                 var clientHandler = new ClientHandler<Response>(handler, request, cancellationToken);
-                return await clientHandler.Handle();
+                return await clientHandler.Handle(featureContext ?? new FeatureContext());
             }
             else
             {
@@ -66,23 +68,33 @@ namespace StarterProject.Client.Features
                 var serverService = serviceProvider.GetService<IServerFeatureService>();
                 if(serverService == null)
                 {
-                    return await serverHandler.Handle();
+                    return await serverHandler.Handle(featureContext ?? new FeatureContext());
                 }
                 else
                 {
-                    return await serverService.HandleServer(serverHandler, requestType, request, cancellationToken);
+                    return await serverService.HandleServer(serverHandler, requestType, request, featureContext, cancellationToken);
                 }
             }
         }
 
         public async Task<FeatureResponse<Response>> Run<Response>(IBaseFeatureRequest<Response> request, CancellationToken cancellationToken = default) where Response : class
         {
-            return await Run(request.GetType(), request, cancellationToken);
+            return await Run(request.GetType(), request, null, cancellationToken);
         }
 
         public async Task<FeatureResponse<Response>> Run<Request, Response>(IBaseFeatureRequest<Response> request, CancellationToken cancellationToken = default) where Response : class where Request : class, IBaseFeatureRequest<Response>
         {
-            return await Run(typeof(Request), request, cancellationToken);
+            return await Run(typeof(Request), request, null, cancellationToken);
+        }
+
+        public async Task<FeatureResponse<Response>> Run<Response>(IBaseFeatureRequest<Response> request, IFeatureContext featureContext, CancellationToken cancellationToken = default) where Response : class
+        {
+            return await Run(request.GetType(), request, featureContext, cancellationToken);
+        }
+
+        public async Task<FeatureResponse<Response>> Run<Request, Response>(IBaseFeatureRequest<Response> request, IFeatureContext featureContext, CancellationToken cancellationToken = default) where Response : class where Request : class, IBaseFeatureRequest<Response>
+        {
+            return await Run(typeof(Request), request, featureContext, cancellationToken);
         }
     }
 }

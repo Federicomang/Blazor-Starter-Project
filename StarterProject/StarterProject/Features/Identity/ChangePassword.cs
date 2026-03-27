@@ -9,7 +9,7 @@ namespace StarterProject.Features.Identity
 {
     public class ChangePassword(IHttpContextAccessor httpContextAccessor, UserManager<User> userManager) : ClientChangePassword, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             FeatureResponse<Response> response;
             int statusCode;

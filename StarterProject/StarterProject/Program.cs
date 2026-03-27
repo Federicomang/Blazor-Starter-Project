@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Hangfire;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
@@ -19,6 +20,7 @@ using StarterProject.Database.Entities.OpenIddict;
 using StarterProject.Database.Interceptors;
 using StarterProject.Extensions;
 using StarterProject.Features;
+using StarterProject.Infrastructure;
 using StarterProject.Infrastructure.Hangfire;
 using StarterProject.Infrastructure.Localization;
 using StarterProject.Middlewares;
@@ -229,6 +231,9 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSharedServices();
 
 builder.Services.AddScoped<IServerFeatureService, ServerFeatureService>();
+builder.Services.AddScoped<ClaimsEnricher>();
+builder.Services.AddScoped<CustomAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(x => x.GetRequiredService<CustomAuthStateProvider>());
 builder.Services.AddScoped<CustomAuthenticationMiddleware>();
 builder.Services.AddScoped<DbContextAuditInterceptor>();
 builder.Services.AddScoped<DbContextIdentifierInterceptor>();

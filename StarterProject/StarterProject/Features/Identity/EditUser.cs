@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StarterProject.Client.Features;
@@ -7,14 +8,18 @@ using StarterProject.Database;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
 using StarterProject.Features.Identity.Shared;
-using StarterProject.Tools;
 using ClientEditUser = StarterProject.Client.Features.Identity.EditUser;
 
 namespace StarterProject.Features.Identity
 {
-    public class EditUser(UserManager<User> userManager, ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientEditUser, IBaseFeatureEndpoint
+    public class EditUser(UserManager<User> userManager, ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientEditUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        private static void BuildPolicy(AuthorizationPolicyBuilder policy)
+        {
+            policy.RequireRole(ApplicationRoles.Superadmin, ApplicationRoles.Administrator);
+        }
+
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             FeatureResponse<Response> response;
             int statusCode;
@@ -85,10 +90,9 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(request);
                 await context.ApplyApiFeatureResponse();
-            }).RequireAuthorization(policy =>
-            {
-                policy.RequireRole(ApplicationRoles.Superadmin, ApplicationRoles.Administrator);
-            });
+            }).RequireAuthorization(BuildPolicy);
         }
+
+        void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
     }
 }

@@ -34,7 +34,7 @@ namespace StarterProject.Features.Identity
             public override bool IsPersistent { get; set; } //Only for cookie
         }
 
-        public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, CancellationToken cancellationToken = default)
+        public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var httpContext = httpContextAccessor.HttpContext!;
             if (httpContext.IsSocketConnection()) //è in modalità InteractiveServer (quindi comunica tramite SignalR che è una connessione socket)

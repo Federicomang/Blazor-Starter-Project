@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client.Features;
 using StarterProject.Client.Features.Identity.Models;
@@ -15,9 +16,14 @@ namespace StarterProject.Features.Identity
     public class GetUsers(
         IHttpContextAccessor httpContextAccessor,
         UserManager<User> userManager,
-        ApplicationDbContext dbContext) : ClientGetUsers, IBaseFeatureEndpoint
+        ApplicationDbContext dbContext) : ClientGetUsers, IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        private static void BuildPolicy(AuthorizationPolicyBuilder policy)
+        {
+            policy.RequireAuthenticatedUser();
+        }
+
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var httpContext = httpContextAccessor.HttpContext;
             if(httpContext == null)
@@ -73,10 +79,9 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(request);
                 await context.ApplyApiFeatureResponse();
-            }).RequireAuthorization(policy =>
-            {
-                policy.RequireAuthenticatedUser();
-            });
+            }).RequireAuthorization(BuildPolicy);
         }
+
+        void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
     }
 }

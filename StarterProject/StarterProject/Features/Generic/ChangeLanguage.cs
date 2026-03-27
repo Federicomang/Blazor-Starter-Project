@@ -9,7 +9,7 @@ namespace StarterProject.Features.Generic
 {
     public class ChangeLanguage(IHttpContextAccessor httpContextAccessor) : ClientChangeLanguage, IBaseFeatureEndpoint
     {
-        public override async Task<FeatureResponse<Response>> HandleServer(Request request, CancellationToken cancellationToken = default)
+        public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             FeatureResponse<Response> response;
             var httpContext = httpContextAccessor.HttpContext;
