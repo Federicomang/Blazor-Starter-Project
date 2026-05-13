@@ -10,6 +10,7 @@ using StarterProject.Attributes;
 using StarterProject.Client.Features;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
+using StarterProject.OpenApi;
 using StarterProject.Tools;
 using System.Security.Claims;
 using System.Text.Json;
@@ -194,7 +195,8 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run<Request, Response>(request);
                 await context.ApplyApiFeatureResponse();
-            }).WithMetadata(new ExplicitOpenApiRequestAttribute(new(typeof(Request), "application/x-www-form-urlencoded")))
+            }).WithTags(OpenApiDocumentGroups.Identity)
+                .WithMetadata(new ExplicitOpenApiRequestAttribute(new(typeof(Request), "application/x-www-form-urlencoded")))
                 .WithMetadata(new ExplicitOpenApiResponseAttribute(StatusCodes.Status200OK, [new(typeof(Response))]))
                 .WithMetadata(new ExplicitOpenApiResponseAttribute(StatusCodes.Status400BadRequest, [new(typeof(ErrorResponse))]))
                 .DisableAntiforgery();

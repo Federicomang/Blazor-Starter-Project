@@ -7,6 +7,7 @@ using StarterProject.Client.Features;
 using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
+using StarterProject.OpenApi;
 using ClientDeleteUser = StarterProject.Client.Features.Identity.DeleteUser;
 using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
 
@@ -59,7 +60,8 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(request);
                 await context.ApplyApiFeatureResponse();
-            }).RequireAuthorization(BuildPolicy);
+            }).RequireAuthorization(BuildPolicy)
+                .WithTags(OpenApiDocumentGroups.Identity);
         }
 
         void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);

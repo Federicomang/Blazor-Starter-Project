@@ -7,6 +7,7 @@ using Microsoft.JSInterop;
 using OpenIddict.Server.AspNetCore;
 using StarterProject.Client.Features;
 using StarterProject.Extensions;
+using StarterProject.OpenApi;
 using ClientLogout = StarterProject.Client.Features.Identity.Logout;
 using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
 
@@ -56,12 +57,12 @@ namespace StarterProject.Features.Identity
             builder.MapPost(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
                 await featureService.Run(new Request());
                 await context.ApplyApiFeatureResponse();
-            });
+            }).WithTags(OpenApiDocumentGroups.Identity);
 
             builder.MapGet(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
                 await featureService.Run(new Request());
                 await context.ApplyApiFeatureResponse();
-            });
+            }).WithTags(OpenApiDocumentGroups.Identity);
         }
     }
 }

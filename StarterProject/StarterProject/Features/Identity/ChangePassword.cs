@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client.Features;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
+using StarterProject.OpenApi;
 using ClientChangePassword = StarterProject.Client.Features.Identity.ChangePassword;
 
 namespace StarterProject.Features.Identity
@@ -45,7 +46,7 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(request);
                 await context.ApplyApiFeatureResponse();
-            });
+            }).WithTags(OpenApiDocumentGroups.Identity);
         }
     }
 }

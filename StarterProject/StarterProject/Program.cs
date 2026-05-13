@@ -25,6 +25,7 @@ using StarterProject.Infrastructure.Hangfire;
 using StarterProject.Infrastructure.Localization;
 using StarterProject.Middlewares;
 using StarterProject.Middlewares.Transformers;
+using StarterProject.OpenApi;
 using StarterProject.Tools;
 using StarterProject.Web;
 using System.Reflection;
@@ -224,7 +225,27 @@ builder.Services.AddOpenIddict()
 
 builder.Services.AddValidatorsFromAssemblies([thisAssembly, clientAssembly], includeInternalTypes: true);
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var document in OpenApiDocumentNames.Documents)
+    {
+        options.AddPolicy($"OpenApiDocument:{document.Name}", policy =>
+        {
+            policy.RequireAssertion(context => OpenApiDocumentNames.CanAccess(context.User, document.Name));
+        });
+    }
+
+    options.AddPolicy("OpenApiDocument", policy =>
+    {
+        policy.RequireAssertion(context =>
+        {
+            var httpContext = context.Resource as HttpContext;
+            var documentName = httpContext?.Request.RouteValues["documentName"]?.ToString();
+
+            return OpenApiDocumentNames.CanAccess(context.User, documentName);
+        });
+    });
+});
 
 builder.Services.AddCascadingAuthenticationState();
 
@@ -253,22 +274,13 @@ if (proxyEnabled)
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddOpenApi(options =>
+foreach (var document in OpenApiDocumentNames.Documents)
 {
-    options.AddDocumentTransformer<AuthorizationTransformer>();
-    options.AddOperationTransformer<AuthorizationTransformer>();
-    options.AddOperationTransformer<ExplicitRequestBodyTransformer>();
-    options.AddOperationTransformer<FeatureResponseBodyTransformer>();
-    options.AddOperationTransformer<ExplicitResponseBodyTransformer>();
-    options.CreateSchemaReferenceId = info =>
+    builder.Services.AddOpenApi(document.Name, options =>
     {
-        if (info.Type != null && info.Type.FullName!.EndsWith("+" + info.Type.Name))
-        {
-            return info.Type.FullName.Replace("+", "-");
-        }
-        return OpenApiOptions.CreateDefaultSchemaReferenceId(info);
-    };
-});
+        options.ConfigureStarterProjectOpenApi(document.Name);
+    });
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
@@ -297,8 +309,16 @@ app.UseMiddleware<ExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapOpenApi().RequireAuthorization("OpenApiDocument");
+
+    foreach (var document in OpenApiDocumentNames.Documents)
+    {
+        app.MapScalarApiReference(document.ScalarRoute, options =>
+        {
+            options.WithTitle(document.Title)
+                .AddDocument(document.Name, document.Title);
+        }).RequireAuthorization($"OpenApiDocument:{document.Name}");
+    }
 }
 else
 {

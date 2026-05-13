@@ -9,6 +9,7 @@ using StarterProject.Client.Infrastructure;
 using StarterProject.Database;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
+using StarterProject.OpenApi;
 using StarterProject.Tools;
 using System.Linq.Dynamic.Core;
 using ClientGetUser = StarterProject.Client.Features.Identity.GetUser;
@@ -84,7 +85,8 @@ namespace StarterProject.Features.Identity
             {
                 await featureService.Run(new Request() { UserId = userId });
                 await context.ApplyApiFeatureResponse();
-            }).RequireAuthorization(BuildPolicy);
+            }).RequireAuthorization(BuildPolicy)
+                .WithTags(OpenApiDocumentGroups.Identity);
         }
 
         void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
