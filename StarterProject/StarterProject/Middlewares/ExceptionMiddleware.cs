@@ -21,12 +21,24 @@ namespace StarterProject.Middlewares
                     var endpoint = httpContext.GetEndpoint()?.DisplayName;
                     logger.LogError(e, "An error as occurred - Endpoint: {endpoint} - Request Payload: {payload}", endpoint, payload);
                 }
-                if(payload != null)
+                IResult result;
+                if (payload == null)
+                {
+                    if (e is BadHttpRequestException ex)
+                    {
+                        result = Results.Content(ex.Message, statusCode: ex.StatusCode);
+                    }
+                    else
+                    {
+                        result = Results.InternalServerError();
+                    }
+                }
+                else
                 {
                     var respFailure = FeatureResponse<object>.AsFailure(messages: ["Internal server error"]);
-                    var result = Results.Json(respFailure, statusCode: StatusCodes.Status500InternalServerError);
-                    await result.ExecuteAsync(httpContext);
+                    result = Results.Json(respFailure, statusCode: StatusCodes.Status500InternalServerError);
                 }
+                await result.ExecuteAsync(httpContext);
             }
         }
     }
