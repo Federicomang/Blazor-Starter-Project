@@ -18,16 +18,16 @@ namespace StarterProject.Client.Features.Identity
             public virtual string GrantType { get; set; }
 
             [JsonPropertyName("username")]
-            public virtual string? Username { get; set; }
+            public virtual string Username { get; set; } = string.Empty;
 
             [JsonPropertyName("password")]
-            public virtual string? Password { get; set; }
+            public virtual string Password { get; set; } = string.Empty;
 
             [JsonPropertyName("client_id")]
-            public virtual string? ClientId { get; set; } //Only for client_credentials
+            public virtual string ClientId { get; set; } = string.Empty; //Only for client_credentials
 
             [JsonPropertyName("client_secret")]
-            public virtual string? ClientSecret { get; set; } //Only for client_credentials
+            public virtual string ClientSecret { get; set; } = string.Empty; //Only for client_credentials
 
             [JsonPropertyName("scope")]
             [Required]
