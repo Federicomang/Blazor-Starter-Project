@@ -309,20 +309,21 @@ app.UseMiddleware<ExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
-    app.MapOpenApi().RequireAuthorization("OpenApiDocument");
-
-    foreach (var document in OpenApiDocumentNames.Documents)
-    {
-        app.MapScalarApiReference(document.ScalarRoute, options =>
-        {
-            options.WithTitle(document.Title)
-                .AddDocument(document.Name, document.Title);
-        }).RequireAuthorization($"OpenApiDocument:{document.Name}");
-    }
 }
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+}
+
+app.MapOpenApi().RequireAuthorization("OpenApiDocument");
+
+foreach (var document in OpenApiDocumentNames.Documents)
+{
+    app.MapScalarApiReference(document.ScalarRoute, options =>
+    {
+        options.WithTitle(document.Title)
+            .AddDocument(document.Name, document.Title);
+    }).RequireAuthorization($"OpenApiDocument:{document.Name}");
 }
 
 await app.InitDb();
