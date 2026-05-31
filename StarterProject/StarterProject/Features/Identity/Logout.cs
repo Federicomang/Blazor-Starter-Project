@@ -1,15 +1,15 @@
-﻿using Microsoft.AspNetCore;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.JSInterop;
 using OpenIddict.Server.AspNetCore;
-using StarterProject.Client.Features;
 using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientLogout = StarterProject.Client.Features.Identity.Logout;
-using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
+using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {

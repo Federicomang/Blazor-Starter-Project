@@ -1,6 +1,7 @@
-﻿using StarterProject.Client.Extensions;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Extensions;
 using System.Net.Http.Json;
-using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
+using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
 
 namespace StarterProject.Client.Features.Identity
 {

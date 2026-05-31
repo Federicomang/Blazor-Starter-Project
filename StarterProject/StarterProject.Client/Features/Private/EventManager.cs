@@ -1,9 +1,10 @@
-﻿using StarterProject.Client.Attributes;
-using StarterProject.Client.Extensions;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Attributes;
+using BlazorFeatures.Abstractions.Extensions;
 using StarterProject.Client.Infrastructure;
 using System.Net.Http.Json;
 using System.Text.Json;
-using static StarterProject.Client.Features.FeatureService;
+using static BlazorFeatures.Abstractions.FeatureService;
 
 namespace StarterProject.Client.Features.Private
 {
@@ -89,13 +90,13 @@ namespace StarterProject.Client.Features.Private
 
         public EventManager(IHttpClientFactory httpClientFactory, IServiceProvider serviceProvider)
         {
-            HttpClient = httpClientFactory.CreateClient(Constants.DefaultHttpClientName);
+            HttpClient = httpClientFactory.CreateClient(ApplicationConstants.DefaultHttpClientName);
             ServiceProvider = serviceProvider;
         }
 
         private bool Subscribe<T>(string eventName, Delegate function, EventType pipeToListen, string ? identifier)
         {
-            if(IsClientEnvironment && pipeToListen != EventType.Client)
+            if(Constants.IsClientEnvironment && pipeToListen != EventType.Client)
             {
 
             }

@@ -1,11 +1,12 @@
-﻿@using StarterProject.Client.Pages
+﻿@using BlazorFeatures.Abstractions.Enums
+@using StarterProject.Client.Pages
 @inherits LayoutComponentBase
 
-@if (Constants.ApplicationRenderType == RenderType.Client)
+@if (ApplicationRenderType == RenderType.Client)
 {
     <MainLayoutWASM Theme="_currentTheme" />
 }
-else if (Constants.ApplicationRenderType == RenderType.Server)
+else if (ApplicationRenderType == RenderType.Server)
 {
     <MainLayoutServer Theme="_currentTheme" />
 }
@@ -37,7 +38,6 @@ else
                     @Body
                 </MudContainer>
             </MudMainContent>
-           
         </MudLayout>
     </Authorized>
 </AuthorizeView>

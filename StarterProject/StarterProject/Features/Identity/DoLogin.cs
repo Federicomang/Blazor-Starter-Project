@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
@@ -7,7 +8,6 @@ using Microsoft.JSInterop;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using StarterProject.Attributes;
-using StarterProject.Client.Features;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
 using StarterProject.OpenApi;
@@ -29,15 +29,6 @@ namespace StarterProject.Features.Identity
         NavigationManager navigationManager
     ) : ClientDoLogin, IBaseFeatureEndpoint
     {
-        public class ServerRequest : Request //Non mappo gli altri campi poichè vengono
-        {
-            [FromForm(Name = "is_cookie")]
-            public override bool IsCookie { get; set; }
-
-            [FromForm(Name = "is_persistent")]
-            public override bool IsPersistent { get; set; } //Only for cookie
-        }
-
         public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var httpContext = httpContextAccessor.HttpContext!;
@@ -191,9 +182,9 @@ namespace StarterProject.Features.Identity
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
-            builder.MapPost(ApiPath, async (HttpContext context, [FromForm] ServerRequest request, [FromServices] IFeatureService featureService) =>
+            builder.MapPost(ApiPath, async (HttpContext context, FormBound<Request> request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run<Request, Response>(request);
+                await featureService.Run(request.Value);
                 await context.ApplyApiFeatureResponse();
             }).WithTags(OpenApiDocumentGroups.Identity)
                 .WithMetadata(new ExplicitOpenApiRequestAttribute(new(typeof(Request), "application/x-www-form-urlencoded")))

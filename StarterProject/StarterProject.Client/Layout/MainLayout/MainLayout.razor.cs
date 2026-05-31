@@ -1,3 +1,6 @@
+using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Enums;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace StarterProject.Client.Layout.MainLayout
@@ -6,7 +9,10 @@ namespace StarterProject.Client.Layout.MainLayout
     {
         private bool _drawerOpen = true;
 
-        private MudTheme _currentTheme = new MudTheme()
+        [CascadingParameter(Name = Constants.ApplicationRenderTypeKey)]
+        private RenderType ApplicationRenderType { get; set; }
+
+        private MudTheme _currentTheme = new()
         {
             PaletteLight = new PaletteLight()
             {

@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace StarterProject.Tools
 {
-    public class HttpTools : Client.Tools.HttpTools
+    public class HttpTools : BlazorFeatures.Abstractions.Tools.HttpTools
     {
         public new static string ToUrlEncodedString(object obj)
         {

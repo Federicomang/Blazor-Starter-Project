@@ -1,4 +1,5 @@
-﻿using StarterProject.Client.Extensions;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Extensions;
 using StarterProject.Client.Features.Identity.Models;
 using System.Net.Http.Json;
 

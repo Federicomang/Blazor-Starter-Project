@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using StarterProject.Client.Features;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
 using StarterProject.OpenApi;

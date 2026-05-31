@@ -1,7 +1,8 @@
-﻿using StarterProject.Client.Extensions;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Extensions;
+using BlazorFeatures.Abstractions.Tools;
 using StarterProject.Client.Features.Identity.Models;
 using StarterProject.Client.Infrastructure;
-using StarterProject.Client.Tools;
 
 namespace StarterProject.Client.Features.Identity
 {

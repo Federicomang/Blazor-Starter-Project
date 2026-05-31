@@ -1,10 +1,8 @@
-﻿using FluentValidation;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Tools;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components.Authorization;
-using StarterProject.Client;
 using StarterProject.Client.Attributes;
-using StarterProject.Client.Features;
-using StarterProject.Client.Tools;
 using StarterProject.Extensions;
 using StarterProject.Infrastructure;
 using System.Reflection;
@@ -16,6 +14,7 @@ namespace StarterProject.Features
         IServiceProvider serviceProvider,
         IAuthorizationService authorizationService,
         CustomAuthStateProvider authProvider,
+        FeatureApplicationOptions featureApplicationOptions,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ServerFeatureService> logger) : IServerFeatureService
     {
@@ -82,7 +81,7 @@ namespace StarterProject.Features
                     if (logger.IsEnabled(LogLevel.Error) == true)
                     {
                         var featureName = request.GetType().FullName;
-                        var payload = JsonSerializer.Serialize(request, request.GetType(), Constants.JsonSerializeOptions);
+                        var payload = JsonSerializer.Serialize(request, request.GetType(), featureApplicationOptions.JsonSerializerOptions);
                         logger.LogError(e, "An error as occurred in server - Feature: {featureName} - Request Payload: {payload}", featureName, payload);
                     }
                     return FeatureResponse<Response>.AsFailure(messages: ["Internal server error"]);

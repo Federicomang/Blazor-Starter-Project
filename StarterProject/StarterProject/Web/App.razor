@@ -1,6 +1,6 @@
-﻿@using StarterProject.Client
+﻿@using BlazorFeatures.Abstractions.Enums
+@using StarterProject.Client
 @using System.Reflection
-@using static StarterProject.Client.Constants;
 
 <!DOCTYPE html>
 <html lang="it">
@@ -29,7 +29,12 @@
 </html>
 
 @code {
-    private static IEnumerable<Assembly> AdditionalAssemblies =>
+    [CascadingParameter(Name = Constants.ApplicationRenderTypeKey)]
+    private RenderType ApplicationRenderType { get; set; }
+
+    private IComponentRenderMode? ApplicationRenderMode => Constants.GetApplicationRenderMode(ApplicationRenderType);
+
+    private IEnumerable<Assembly> AdditionalAssemblies =>
         ApplicationRenderType == RenderType.Client
             ? []
             : [typeof(App).Assembly];

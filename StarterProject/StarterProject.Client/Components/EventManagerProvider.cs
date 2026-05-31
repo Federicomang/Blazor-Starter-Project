@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.Components;
 using StarterProject.Client.Infrastructure;
 
 namespace StarterProject.Client.Components

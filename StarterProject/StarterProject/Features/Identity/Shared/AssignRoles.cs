@@ -1,6 +1,6 @@
-﻿using FluentValidation;
+﻿using BlazorFeatures.Abstractions;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using StarterProject.Client.Features;
 using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;

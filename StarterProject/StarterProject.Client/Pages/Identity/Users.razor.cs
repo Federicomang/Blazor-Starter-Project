@@ -1,6 +1,6 @@
-﻿using MudBlazor;
+﻿using BlazorFeatures.Abstractions;
+using MudBlazor;
 using StarterProject.Client.Components;
-using StarterProject.Client.Features;
 using StarterProject.Client.Features.Identity;
 using StarterProject.Client.Features.Identity.Models;
 

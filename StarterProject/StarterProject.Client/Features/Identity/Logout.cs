@@ -1,5 +1,6 @@
-﻿using System.Text;
-using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
+﻿using BlazorFeatures.Abstractions;
+using System.Text;
+using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
 
 namespace StarterProject.Client.Features.Identity
 {

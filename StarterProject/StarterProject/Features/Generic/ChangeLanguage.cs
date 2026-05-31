@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Localization;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client;
-using StarterProject.Client.Features;
 using StarterProject.Extensions;
 using ClientChangeLanguage = StarterProject.Client.Features.Generic.ChangeLanguage;
 
@@ -19,7 +19,7 @@ namespace StarterProject.Features.Generic
                 int statusCode;
                 var requestCulture = new RequestCulture(request.Culture);
 
-                if (Constants.SupportedCultures.Any(x => x.Name == requestCulture.Culture.Name))
+                if (ApplicationConstants.SupportedCultures.Any(x => x.Name == requestCulture.Culture.Name))
                 {
                     httpContext.Response.Cookies.Append(
                     CookieRequestCultureProvider.DefaultCookieName,

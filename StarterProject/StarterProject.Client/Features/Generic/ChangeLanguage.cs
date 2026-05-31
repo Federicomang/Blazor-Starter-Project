@@ -1,5 +1,6 @@
 ﻿
-using StarterProject.Client.Extensions;
+using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Extensions;
 using System.Net.Http.Json;
 
 namespace StarterProject.Client.Features.Generic

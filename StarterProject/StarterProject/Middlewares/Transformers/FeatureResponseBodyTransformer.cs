@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.OpenApi;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using StarterProject.Client.Features;
 using System.Reflection;
 
 namespace StarterProject.Middlewares.Transformers

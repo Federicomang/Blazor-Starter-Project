@@ -1,6 +1,7 @@
-﻿using FluentValidation;
-using StarterProject.Client.Extensions;
-using StarterProject.Client.Tools;
+﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Extensions;
+using BlazorFeatures.Abstractions.Tools;
+using FluentValidation;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -15,34 +16,34 @@ namespace StarterProject.Client.Features.Identity
         {
             [JsonPropertyName("grant_type")]
             [Required]
-            public required virtual string GrantType { get; set; }
+            public string GrantType { get; set; } = string.Empty;
 
             [JsonPropertyName("username")]
-            public virtual string Username { get; set; } = string.Empty;
+            public string Username { get; set; } = string.Empty;
 
             [JsonPropertyName("password")]
-            public virtual string Password { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
 
             [JsonPropertyName("client_id")]
-            public virtual string ClientId { get; set; } = string.Empty; //Only for client_credentials
+            public string ClientId { get; set; } = string.Empty; //Only for client_credentials
 
             [JsonPropertyName("client_secret")]
-            public virtual string ClientSecret { get; set; } = string.Empty; //Only for client_credentials
+            public string ClientSecret { get; set; } = string.Empty; //Only for client_credentials
 
             [JsonPropertyName("scope")]
             [Required]
-            public virtual string Scope { get; set; }
+            public string Scope { get; set; } = string.Empty;
 
             [JsonPropertyName("is_cookie")]
             [DefaultValue(false)]
-            public virtual bool IsCookie { get; set; }
+            public bool IsCookie { get; set; }
 
             [JsonPropertyName("is_persistent")]
             [DefaultValue(false)]
-            public virtual bool IsPersistent { get; set; } //Only for cookie
+            public bool IsPersistent { get; set; } //Only for cookie
 
             [JsonPropertyName("refresh_token")]
-            public virtual string RefreshToken { get; set; } = string.Empty; //Only for refresh_token
+            public string RefreshToken { get; set; } = string.Empty; //Only for refresh_token
         }
 
         public class Response

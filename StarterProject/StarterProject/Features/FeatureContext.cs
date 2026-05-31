@@ -1,9 +1,9 @@
-﻿using StarterProject.Client.Features;
+﻿using BlazorFeatures.Abstractions;
 
 namespace StarterProject.Features
 {
     internal class FeatureContext : IFeatureContext
     {
-        public List<object> FeatureChain { get; set; } = [];
+        public List<IBaseFeatureRequest> FeatureChain { get; set; } = [];
     }
 }

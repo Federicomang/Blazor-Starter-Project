@@ -1,10 +1,10 @@
-﻿using FluentValidation;
+﻿using BlazorFeatures.Abstractions;
+using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 using OpenIddict.Abstractions;
@@ -12,7 +12,6 @@ using OpenIddict.Validation.AspNetCore;
 using Scalar.AspNetCore;
 using StarterProject.Client;
 using StarterProject.Client.Extensions;
-using StarterProject.Client.Features;
 using StarterProject.Client.Features.Identity;
 using StarterProject.Database;
 using StarterProject.Database.Entities;
@@ -24,7 +23,6 @@ using StarterProject.Infrastructure;
 using StarterProject.Infrastructure.Hangfire;
 using StarterProject.Infrastructure.Localization;
 using StarterProject.Middlewares;
-using StarterProject.Middlewares.Transformers;
 using StarterProject.OpenApi;
 using StarterProject.Tools;
 using StarterProject.Web;
@@ -331,8 +329,8 @@ await app.InitDb();
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
     DefaultRequestCulture = new RequestCulture("en-US"),
-    SupportedCultures = Constants.SupportedCultures,
-    SupportedUICultures = Constants.SupportedCultures,
+    SupportedCultures = ApplicationConstants.SupportedCultures,
+    SupportedUICultures = ApplicationConstants.SupportedCultures,
     RequestCultureProviders = [new HybridRequestCultureProvider()]
 });
 

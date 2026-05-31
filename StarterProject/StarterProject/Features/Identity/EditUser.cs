@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StarterProject.Client.Features;
 using StarterProject.Client.Infrastructure;
 using StarterProject.Database;
 using StarterProject.Database.Entities;

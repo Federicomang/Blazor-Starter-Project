@@ -8,8 +8,6 @@ namespace StarterProject.Client.Infrastructure
 
         public const string Superadmin = "Superadmin";
         public const string Administrator = "Administrator";
-        public const string Sales = "Sales";
-        public const string ExternalSales = "ExternalSales";
 
         public static List<string> GetAllRoles()
         {

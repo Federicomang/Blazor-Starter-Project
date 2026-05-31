@@ -12,12 +12,12 @@ builder.Services.AddAuthenticationStateDeserialization();
 
 builder.Services.AddSharedServices();
 
-builder.Services.AddHttpClient(Constants.DefaultHttpClientName, client =>
+builder.Services.AddHttpClient(ApplicationConstants.DefaultHttpClientName, client =>
 {
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
 });
 
-builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient(Constants.DefaultHttpClientName));
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient(ApplicationConstants.DefaultHttpClientName));
 
 var app = builder.Build();
 

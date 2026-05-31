@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using BlazorFeatures.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Polly;
-using StarterProject.Client.Features;
 using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientDeleteUser = StarterProject.Client.Features.Identity.DeleteUser;
-using Response = StarterProject.Client.Features.FeatureService.EmptyResponse;
+using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {

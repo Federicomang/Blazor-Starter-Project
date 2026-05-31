@@ -1,4 +1,4 @@
-﻿using StarterProject.Client.Features;
+﻿using BlazorFeatures.Abstractions;
 using ClientEventManager = StarterProject.Client.Features.Private.EventManager;
 
 namespace StarterProject.Features.Private

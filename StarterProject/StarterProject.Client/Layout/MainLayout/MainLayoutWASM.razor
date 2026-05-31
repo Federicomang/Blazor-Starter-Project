@@ -1,6 +1,7 @@
-﻿@rendermode InteractiveWebAssembly
+﻿@using BlazorFeatures.Abstractions.Enums
+@rendermode InteractiveWebAssembly
 
-@if (Constants.ApplicationRenderType == RenderType.Client || RendererInfo.IsInteractive)
+@if (ApplicationRenderType == RenderType.Client || RendererInfo.IsInteractive)
 {
     <MudThemeProvider Theme="Theme" />
     <MudPopoverProvider />
@@ -10,6 +11,9 @@
 }
 
 @code {
+    [CascadingParameter(Name = Constants.ApplicationRenderTypeKey)]
+    private RenderType ApplicationRenderType { get; set; }
+
     [Parameter]
     public MudTheme Theme { get; set; }
 }
