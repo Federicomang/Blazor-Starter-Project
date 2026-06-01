@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

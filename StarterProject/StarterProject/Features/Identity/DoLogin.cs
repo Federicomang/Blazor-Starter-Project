@@ -1,4 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -34,14 +36,14 @@ namespace StarterProject.Features.Identity
             var httpContext = httpContextAccessor.HttpContext!;
             if (httpContext.IsSocketConnection()) //è in modalità InteractiveServer (quindi comunica tramite SignalR che è una connessione socket)
             {
-                var jsResponse = await jsRuntime.InvokeAsync<BrowserDoRequest<string>>("window.doRequest", navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
+                var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
                 {
                     method = "POST",
                     headers = new Dictionary<string, string> {
                         { "Content-Type", "application/x-www-form-urlencoded" }
                     },
                     body = HttpTools.ToUrlEncodedString(featureRequest)
-                }, false);
+                });
                 if(jsResponse.StatusCode == StatusCodes.Status200OK)
                 {
                     var responseData = string.IsNullOrEmpty(jsResponse.Result)

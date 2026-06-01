@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client;

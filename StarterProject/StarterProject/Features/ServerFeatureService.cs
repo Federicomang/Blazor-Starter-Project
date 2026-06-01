@@ -1,8 +1,9 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Attributes;
+using BlazorFeatures.Abstractions.Server;
 using BlazorFeatures.Abstractions.Tools;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using StarterProject.Client.Attributes;
 using StarterProject.Extensions;
 using StarterProject.Infrastructure;
 using System.Reflection;

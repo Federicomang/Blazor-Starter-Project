@@ -1,6 +1,12 @@
 ﻿@using BlazorFeatures.Abstractions.Enums
 @using StarterProject.Client.Pages
 @inherits LayoutComponentBase
+@inject FeatureRootComponentsManager RootComponentsManager
+
+@foreach (var componentType in RootComponentsManager.RootComponents)
+{
+    <DynamicComponent Type="componentType" />
+}
 
 @if (ApplicationRenderType == RenderType.Client)
 {

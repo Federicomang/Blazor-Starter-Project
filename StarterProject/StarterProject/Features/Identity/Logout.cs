@@ -1,4 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -20,14 +22,14 @@ namespace StarterProject.Features.Identity
             var httpContext = httpContextAccessor.HttpContext!;
             if(httpContext.IsSocketConnection())
             {
-                var jsResponse = await jsRuntime.InvokeAsync<BrowserDoRequest<string>>("window.doRequest", navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
+                var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
                 {
                     method = "POST",
                     headers = new Dictionary<string, string> {
                         { "Content-Type", "application/x-www-form-urlencoded" }
                     },
                     body = ""
-                }, false);
+                });
                 return FeatureResponse<Response>.Create(jsResponse.StatusCode >= 200 && jsResponse.StatusCode < 400, new());
             }
             else if(httpContext.Request.Method == "POST" || httpContext.Request.Method == "GET")

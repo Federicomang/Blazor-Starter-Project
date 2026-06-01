@@ -1,4 +1,4 @@
-﻿using StarterProject.Features;
+﻿using BlazorFeatures.Abstractions.Server;
 using System.Reflection;
 
 namespace StarterProject.Extensions

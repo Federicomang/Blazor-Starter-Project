@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server;
 using ClientEventManager = StarterProject.Client.Features.Private.EventManager;
 
 namespace StarterProject.Features.Private
