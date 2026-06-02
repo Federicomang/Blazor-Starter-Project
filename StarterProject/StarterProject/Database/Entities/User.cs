@@ -13,6 +13,9 @@ namespace StarterProject.Database.Entities
 
         string? IAuthEntity.Id => Id;
 
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+
         public virtual ICollection<IdentityUserRole<string>> UserRoles { get; set; }
         public virtual ICollection<IdentityRole> Roles { get; set; }
 
@@ -20,8 +23,8 @@ namespace StarterProject.Database.Entities
                 new UserInfo()
                 {
                     Id = user.Id,
-                    Name = user.UserName == null ? "" : user.UserName.Split('.')[0],
-                    Surname = user.UserName == null ? "" : (user.UserName.Split('.').Length > 1 ? user.UserName.Split('.')[1] : ""),
+                    Name = user.FirstName,
+                    Surname = user.LastName,
                     PhoneNumber = user.PhoneNumber,
                     Email = user.Email!,
                     Roles = user.Roles.Select(x => x.Name!).ToList()
@@ -29,7 +32,9 @@ namespace StarterProject.Database.Entities
 
         public void FromUserInfo(UserInfoNoId userInfo)
         {
-            UserName = userInfo.Name + "." + userInfo.Surname;
+            UserName = string.IsNullOrWhiteSpace(userInfo.UserName) ? userInfo.Email : userInfo.UserName;
+            FirstName = userInfo.Name;
+            LastName = userInfo.Surname;
             PhoneNumber = userInfo.PhoneNumber;
             Email = userInfo.Email;
         }
@@ -38,9 +43,11 @@ namespace StarterProject.Database.Entities
         {
             searchString = searchString.ToLower();
             var filter = PredicateBuilder.True<User>();
-            filter = filter.And(x => (x.UserName == null ? false : x.UserName.ToLower().Contains(searchString))
-                || (x.Email == null ? false : x.Email.ToLower().Contains(searchString))
-                || (x.PhoneNumber == null ? false : x.PhoneNumber.ToLower().Contains(searchString)));
+            filter = filter.And(x => (x.UserName != null && x.UserName.ToLower().Contains(searchString))
+                || (x.FirstName != null && x.FirstName.ToLower().Contains(searchString))
+                || (x.LastName != null && x.LastName.ToLower().Contains(searchString))
+                || (x.Email != null && x.Email.ToLower().Contains(searchString))
+                || (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(searchString)));
             return filter;
         }
     }

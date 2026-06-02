@@ -32,6 +32,8 @@ namespace StarterProject.Extensions
             }
 
             const string superadminMail = "federicomangini10@gmail.com";
+            const string superadminName = "Federico";
+            const string suepradminLastName = "Mangini";
 
             using var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
             var exists = await context.Users.AnyAsync(x => x.Email == superadminMail);
@@ -41,6 +43,8 @@ namespace StarterProject.Extensions
                 var user = new User()
                 {
                     UserName = superadminMail,
+                    FirstName = superadminName,
+                    LastName = suepradminLastName,
                     Email = superadminMail,
                     EmailConfirmed = true
                 };

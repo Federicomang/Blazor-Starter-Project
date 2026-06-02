@@ -5,6 +5,7 @@
         public required string Name { get; set; }
         public required string Surname { get; set; }
         public required string Email { get; set; }
+        public string? UserName { get; set; }
         public string? PhoneNumber { get; set; }
         public IReadOnlyCollection<string> Roles { get; set; } = [];
 

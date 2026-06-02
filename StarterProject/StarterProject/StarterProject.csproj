@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StarterProject.Client\StarterProject.Client.csproj" />
-    <PackageReference Include="BlazorFeatures.Abstractions.Server" Version="1.0.7" />
+    <PackageReference Include="BlazorFeatures.Abstractions.Server" Version="1.1.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Hangfire" Version="1.8.23" />
