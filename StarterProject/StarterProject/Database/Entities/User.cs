@@ -13,8 +13,8 @@ namespace StarterProject.Database.Entities
 
         string? IAuthEntity.Id => Id;
 
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
 
         public virtual ICollection<IdentityUserRole<string>> UserRoles { get; set; }
         public virtual ICollection<IdentityRole> Roles { get; set; }
