@@ -1,10 +1,7 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Extensions;
 using BlazorFeatures.Abstractions.Tools;
-using Microsoft.Extensions.Options;
 using StarterProject.Client.Features.Identity.Models;
-using StarterProject.Client.Infrastructure;
-using System.Text.Json;
 
 namespace StarterProject.Client.Features.Identity
 {

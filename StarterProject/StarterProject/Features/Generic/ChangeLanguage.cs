@@ -1,9 +1,9 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Server;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client;
-using StarterProject.Extensions;
 using ClientChangeLanguage = StarterProject.Client.Features.Generic.ChangeLanguage;
 
 namespace StarterProject.Features.Generic

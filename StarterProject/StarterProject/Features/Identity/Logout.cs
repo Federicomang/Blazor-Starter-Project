@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.JSInterop;
 using OpenIddict.Server.AspNetCore;
-using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientLogout = StarterProject.Client.Features.Identity.Logout;
 using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;

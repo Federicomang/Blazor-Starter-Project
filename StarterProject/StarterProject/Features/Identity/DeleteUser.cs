@@ -1,11 +1,11 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Server;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
-using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientDeleteUser = StarterProject.Client.Features.Identity.DeleteUser;
 using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;

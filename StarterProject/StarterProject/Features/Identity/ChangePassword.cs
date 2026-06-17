@@ -1,9 +1,9 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Server;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Database.Entities;
-using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientChangePassword = StarterProject.Client.Features.Identity.ChangePassword;
 

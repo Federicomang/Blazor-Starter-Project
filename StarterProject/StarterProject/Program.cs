@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Abstractions.Server.Extensions;
 using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Components.Authorization;
