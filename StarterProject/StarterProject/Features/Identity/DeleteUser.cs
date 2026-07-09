@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,11 +8,11 @@ using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
 using StarterProject.OpenApi;
 using ClientDeleteUser = StarterProject.Client.Features.Identity.DeleteUser;
-using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
+using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class DeleteUser(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : ClientDeleteUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
+    public class DeleteUser(IServiceProvider sp, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : ClientDeleteUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {

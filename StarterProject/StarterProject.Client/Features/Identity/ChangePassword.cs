@@ -1,13 +1,17 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Extensions;
+using BlazorFeatures.Base;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
+using System.Text.Json;
+using static BlazorFeatures.Base.FeatureService;
 
 namespace StarterProject.Client.Features.Identity
 {
-    public class ChangePassword : IBaseFeature<ChangePassword.Request, ChangePassword.Response>
+    public class ChangePassword(IServiceProvider serviceProvider) : IBaseFeature<ChangePassword.Request, EmptyResponse>
     {
-        public class Request : IBaseFeatureRequest<Response>
+        public class Request : IBaseFeatureRequest<EmptyResponse>
         {
             public string CurrentPassword { get; set; }
 
@@ -16,18 +20,10 @@ namespace StarterProject.Client.Features.Identity
             public string ConfirmPassword { get; set; }
         }
 
-        public record Response();
-
-        private readonly HttpClient? HttpClient;
+        private readonly HttpClient HttpClient = serviceProvider.GetRequiredService<HttpClient>();
+        private readonly JsonSerializerOptions? JsonOptions = serviceProvider.GetService<IOptions<JsonSerializerOptions>>()?.Value;
 
         protected const string ApiPath = "/api/identity/changePassword";
-
-        protected ChangePassword() { }
-
-        public ChangePassword(HttpClient client)
-        {
-            HttpClient = client;
-        }
 
         public class Validator : AbstractValidator<Request>
         {
@@ -44,13 +40,13 @@ namespace StarterProject.Client.Features.Identity
             }
         }
 
-        public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
+        public async Task<FeatureResponse<EmptyResponse>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var response = await HttpClient!.PostAsJsonAsync(ApiPath, request, cancellationToken);
-            return await response.AsFeatureResponse<Response>();
+            return await response.AsFeatureResponse<EmptyResponse>(JsonOptions);
         }
 
-        public virtual Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
+        public virtual Task<FeatureResponse<EmptyResponse>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

@@ -49,7 +49,7 @@ namespace StarterProject.Extensions
                     EmailConfirmed = true
                 };
 
-                await userManager.CreateAsync(user, "Test123!");
+                await userManager.CreateAsync(user, "Dev1234!");
                 await userManager.AddToRoleAsync(user, ApplicationRoles.Superadmin);
             }
         }

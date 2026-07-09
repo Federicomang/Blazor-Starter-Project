@@ -1,6 +1,7 @@
-﻿using BlazorFeatures.Abstractions.Extensions;
+﻿using BlazorFeatures.Base.Extensions;
 using MudBlazor;
 using MudBlazor.Services;
+using System.Text.Json;
 
 namespace StarterProject.Client.Extensions
 {
@@ -8,6 +9,10 @@ namespace StarterProject.Client.Extensions
     {
         public static IServiceCollection AddSharedServices(this IServiceCollection services)
         {
+            services.Configure<JsonSerializerOptions>(options =>
+            {
+                options.PropertyNameCaseInsensitive = true;
+            });
             services.AddFeatures();
             services.AddMudServices(options =>
             {

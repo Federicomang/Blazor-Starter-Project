@@ -34,11 +34,6 @@ namespace StarterProject.Client.Pages.Identity
         //    _logger = logger;
         //}
 
-        protected override async Task OnInitializedAsync()
-        {
-            FillAdministratorCredentials();
-        }
-
         private async Task HandleSubmit()
         {
             ErrorMessages = [];
@@ -80,18 +75,6 @@ namespace StarterProject.Client.Pages.Identity
             //Questa inutile funzione serve affinchè, nel front end, il button abbia la stessa dimensione di quello della visibilità password.
             //Si nota la differenza solo quando il form è già popolato dal gestore password di Google e si vede lo sfondo azzurro
             //Eliminate anche le label che si sovrapponevano a quanto compilato dal gestore password google
-        }
-
-        private void FillAdministratorCredentials()
-        {
-            Data.Username = "test@test.test";
-            Data.Password = "Test123!";
-        }
-
-        private void FillBasicUserCredentials()
-        {
-            Data.Username = "";
-            Data.Password = "Test123!";
         }
     }
 }

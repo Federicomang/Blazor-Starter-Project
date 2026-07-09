@@ -1,10 +1,12 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Attributes;
 using BlazorFeatures.Abstractions.Extensions;
+using BlazorFeatures.Base;
+using BlazorFeatures.Base.Attributes;
+using Microsoft.Extensions.Options;
 using StarterProject.Client.Infrastructure;
 using System.Net.Http.Json;
 using System.Text.Json;
-using static BlazorFeatures.Abstractions.FeatureService;
+using static BlazorFeatures.Base.FeatureService;
 
 namespace StarterProject.Client.Features.Private
 {
@@ -86,10 +88,9 @@ namespace StarterProject.Client.Features.Private
         public const string ApiEventPath = "/api/internal/event/pipe";
         public const string ApiEventPathEnd = "/api/internal/event/pipe/{0}";
 
-        protected EventManager() { }
-
-        public EventManager(IHttpClientFactory httpClientFactory, IServiceProvider serviceProvider)
+        public EventManager(IServiceProvider serviceProvider)
         {
+            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
             HttpClient = httpClientFactory.CreateClient(ApplicationConstants.DefaultHttpClientName);
             ServiceProvider = serviceProvider;
         }
@@ -235,7 +236,8 @@ namespace StarterProject.Client.Features.Private
         private async Task<FeatureResponse<EmptyResponse>> SendToServer(Request request, CancellationToken cancellationToken = default)
         {
             var res = await HttpClient!.PostAsJsonAsync(ApiPath, request, cancellationToken);
-            return await res.AsFeatureResponse<EmptyResponse>();
+            var jsonOptions = ServiceProvider.GetService<IOptions<JsonSerializerOptions>>();
+            return await res.AsFeatureResponse<EmptyResponse>(jsonOptions?.Value);
         }
 
         public async Task<FeatureResponse<EmptyResponse>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)

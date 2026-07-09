@@ -1,5 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server.Extensions;
 using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using NLog.Web;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
@@ -28,6 +29,7 @@ using StarterProject.OpenApi;
 using StarterProject.Tools;
 using StarterProject.Web;
 using System.Reflection;
+using System.Text.Json;
 using static StarterProject.Extensions.HttpContextExtensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -255,8 +257,8 @@ builder.Services.AddScoped<ClaimsEnricher>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(x => x.GetRequiredService<CustomAuthStateProvider>());
 builder.Services.AddScoped<CustomAuthenticationMiddleware>();
-builder.Services.AddScoped<DbContextAuditInterceptor>();
-builder.Services.AddScoped<DbContextIdentifierInterceptor>();
+builder.Services.AddScoped<IInterceptor, DbContextIdentifierInterceptor>();
+builder.Services.AddScoped<IInterceptor, DbContextAuditInterceptor>();
 
 if (proxyEnabled)
 {
@@ -283,12 +285,7 @@ foreach (var document in OpenApiDocumentNames.Documents)
 
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-        .AddInterceptors
-        (
-            sp.GetRequiredService<DbContextIdentifierInterceptor>(),
-            sp.GetRequiredService<DbContextAuditInterceptor>()
-        );
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")).AddInterceptors(sp.GetServices<IInterceptor>());
     options.UseOpenIddict<OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken, string>();
 });
 

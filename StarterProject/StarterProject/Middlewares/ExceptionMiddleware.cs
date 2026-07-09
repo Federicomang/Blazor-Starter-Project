@@ -1,6 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
-using StarterProject.Client;
-using StarterProject.Client.Features;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 namespace StarterProject.Middlewares
 {
@@ -15,9 +14,9 @@ namespace StarterProject.Middlewares
             catch (Exception e)
             {
                 var feature = httpContext.Items["FeatureRequest"];
-                var featureApplicationOptions = httpContext.RequestServices.GetService<FeatureApplicationOptions>();
+                var jsonOptions = httpContext.RequestServices.GetService<IOptions<JsonSerializerOptions>>();
                 var logger = httpContext.RequestServices.GetService<ILogger<ExceptionMiddleware>>();
-                var payload = feature == null ? null : JsonSerializer.Serialize(feature, feature.GetType(), featureApplicationOptions?.JsonSerializerOptions);
+                var payload = feature == null ? null : JsonSerializer.Serialize(feature, feature.GetType(), jsonOptions?.Value);
                 if (logger?.IsEnabled(LogLevel.Error) == true)
                 {
                     var endpoint = httpContext.GetEndpoint()?.DisplayName;

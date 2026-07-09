@@ -1,7 +1,9 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Extensions;
 using BlazorFeatures.Abstractions.Tools;
+using BlazorFeatures.Base;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -10,7 +12,7 @@ using System.Text.Json.Serialization;
 
 namespace StarterProject.Client.Features.Identity
 {
-    public class DoLogin : IBaseFeature<DoLogin.Request, DoLogin.Response>
+    public class DoLogin(IServiceProvider serviceProvider) : IBaseFeature<DoLogin.Request, DoLogin.Response>
     {
         public class Request : IBaseFeatureRequest<Response>
         {
@@ -70,16 +72,10 @@ namespace StarterProject.Client.Features.Identity
             public string? Error { get; set; }
         }
 
-        private readonly HttpClient? HttpClient;
+        private readonly HttpClient HttpClient = serviceProvider.GetRequiredService<HttpClient>();
+        private readonly JsonSerializerOptions? JsonOptions = serviceProvider.GetService<IOptions<JsonSerializerOptions>>()?.Value;
 
         public const string ApiPath = "/api/identity/login";
-
-        protected DoLogin() { }
-
-        public DoLogin(HttpClient client)
-        {
-            HttpClient = client;
-        }
 
         public class Validator : AbstractValidator<Request>
         {
@@ -101,12 +97,12 @@ namespace StarterProject.Client.Features.Identity
                 {
                     var responseData = string.IsNullOrEmpty(content)
                         ? new Response()
-                        : JsonSerializer.Deserialize<Response>(content);
+                        : JsonSerializer.Deserialize<Response>(content, JsonOptions);
                     result = FeatureResponse<Response>.Create(true, responseData!);
                 }
                 else if (!string.IsNullOrEmpty(content))
                 {
-                    var errorRes = JsonSerializer.Deserialize<ErrorResponse>(content);
+                    var errorRes = JsonSerializer.Deserialize<ErrorResponse>(content, JsonOptions);
                     result = FeatureResponse<Response>.Create(false, null, errorRes?.Error == null ? [] : [errorRes.Error]);
                 }
                 else

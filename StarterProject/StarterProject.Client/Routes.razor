@@ -1,5 +1,7 @@
 ﻿@using StarterProject.Client.Layout.MainLayout
 @using System.Reflection
+@using BlazorFeatures.Base
+@inject FeatureSystemContainerService FeatureContainer
 
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Routes).Assembly" AdditionalAssemblies="AdditionalAssemblies">
@@ -21,6 +23,5 @@
 </CascadingAuthenticationState>
 
 @code {
-    [Parameter]
-    public IEnumerable<Assembly> AdditionalAssemblies { get; set; } = [];
+    private IEnumerable<Assembly> AdditionalAssemblies => FeatureContainer.AllAssemblies.Select(x => x.Key).ToList();
 }

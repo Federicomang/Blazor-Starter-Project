@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Base;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using StarterProject.Client.Infrastructure;

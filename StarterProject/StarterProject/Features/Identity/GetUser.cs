@@ -1,6 +1,7 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
+using BlazorFeatures.Base.Server.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +20,11 @@ using ClientGetUser = StarterProject.Client.Features.Identity.GetUser;
 namespace StarterProject.Features.Identity
 {
     public class GetUser(
+        IServiceProvider sp,
         IHttpContextAccessor httpContextAccessor,
         IStringLocalizer<GetUser> localizer,
         UserManager<User> userManager,
-        ApplicationDbContext dbContext) : ClientGetUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
+        ApplicationDbContext dbContext) : ClientGetUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {

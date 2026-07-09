@@ -1,15 +1,16 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Database.Entities;
 using StarterProject.OpenApi;
 using ClientChangePassword = StarterProject.Client.Features.Identity.ChangePassword;
+using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class ChangePassword(IHttpContextAccessor httpContextAccessor, UserManager<User> userManager) : ClientChangePassword, IBaseFeatureEndpoint
+    public class ChangePassword(IServiceProvider sp, IHttpContextAccessor httpContextAccessor, UserManager<User> userManager) : ClientChangePassword(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {

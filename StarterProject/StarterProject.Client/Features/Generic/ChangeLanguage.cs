@@ -1,11 +1,14 @@
 ﻿
 using BlazorFeatures.Abstractions;
 using BlazorFeatures.Abstractions.Extensions;
+using BlazorFeatures.Base;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace StarterProject.Client.Features.Generic
 {
-    public class ChangeLanguage : IBaseFeature<ChangeLanguage.Request, ChangeLanguage.Response>
+    public class ChangeLanguage(IServiceProvider serviceProvider) : IBaseFeature<ChangeLanguage.Request, ChangeLanguage.Response>
     {
         public class Request : IBaseFeatureRequest<Response>
         {
@@ -17,21 +20,15 @@ namespace StarterProject.Client.Features.Generic
 
         }
 
-        private readonly HttpClient? HttpClient;
+        private readonly HttpClient HttpClient = serviceProvider.GetRequiredService<HttpClient>();
+        private readonly JsonSerializerOptions? JsonOptions = serviceProvider.GetService<IOptions<JsonSerializerOptions>>()?.Value;
 
         public const string ApiPath = "/api/generic/changeLanguage";
-
-        protected ChangeLanguage() { }
-
-        public ChangeLanguage(HttpClient client)
-        {
-            HttpClient = client;
-        }
 
         public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             var response = await HttpClient!.PostAsJsonAsync(ApiPath, request, cancellationToken);
-            return await response.AsFeatureResponse<Response>();
+            return await response.AsFeatureResponse<Response>(JsonOptions);
         }
 
         public virtual Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)

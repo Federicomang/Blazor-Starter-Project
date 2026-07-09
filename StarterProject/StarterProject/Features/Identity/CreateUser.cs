@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,11 @@ using ClientCreateUser = StarterProject.Client.Features.Identity.CreateUser;
 
 namespace StarterProject.Features.Identity
 {
-    public class CreateCustomer(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientCreateUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
+    public class CreateCustomer(
+        IServiceProvider sp,
+        UserManager<User> userManager,
+        IHttpContextAccessor httpContextAccessor,
+        IFeatureService featureService) : ClientCreateUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {

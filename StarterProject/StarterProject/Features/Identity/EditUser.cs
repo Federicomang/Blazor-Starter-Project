@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +14,12 @@ using ClientEditUser = StarterProject.Client.Features.Identity.EditUser;
 
 namespace StarterProject.Features.Identity
 {
-    public class EditUser(UserManager<User> userManager, ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor, IFeatureService featureService) : ClientEditUser, IBaseFeatureAuthorization, IBaseFeatureEndpoint
+    public class EditUser(
+        IServiceProvider sp,
+        UserManager<User> userManager,
+        ApplicationDbContext dbContext,
+        IHttpContextAccessor httpContextAccessor,
+        IFeatureService featureService) : ClientEditUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {

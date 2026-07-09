@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Client;
@@ -8,7 +8,7 @@ using ClientChangeLanguage = StarterProject.Client.Features.Generic.ChangeLangua
 
 namespace StarterProject.Features.Generic
 {
-    public class ChangeLanguage(IHttpContextAccessor httpContextAccessor) : ClientChangeLanguage, IBaseFeatureEndpoint
+    public class ChangeLanguage(IServiceProvider sp, IHttpContextAccessor httpContextAccessor) : ClientChangeLanguage(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {

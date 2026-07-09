@@ -1,6 +1,7 @@
-﻿@using BlazorFeatures.Abstractions.Enums
+﻿@using System.Reflection
+@using BlazorFeatures.Abstractions.Enums
+@using BlazorFeatures.Base
 @using StarterProject.Client
-@using System.Reflection
 
 <!DOCTYPE html>
 <html lang="it">
@@ -20,7 +21,7 @@
 </head>
 
 <body class="login">
-    <Routes @rendermode="ApplicationRenderMode" AdditionalAssemblies="AdditionalAssemblies" />
+    <Routes @rendermode="ApplicationRenderMode" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
     <script src="@Assets["js/app.js"]"></script>
@@ -33,9 +34,4 @@
     private RenderType ApplicationRenderType { get; set; }
 
     private IComponentRenderMode? ApplicationRenderMode => Constants.GetApplicationRenderMode(ApplicationRenderType);
-
-    private IEnumerable<Assembly> AdditionalAssemblies =>
-        ApplicationRenderType == RenderType.Client
-            ? []
-            : [typeof(App).Assembly];
 }

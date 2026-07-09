@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,9 +17,10 @@ using ClientGetUsers = StarterProject.Client.Features.Identity.GetUsers;
 namespace StarterProject.Features.Identity
 {
     public class GetUsers(
+        IServiceProvider sp,
         IHttpContextAccessor httpContextAccessor,
         UserManager<User> userManager,
-        ApplicationDbContext dbContext) : ClientGetUsers, IBaseFeatureAuthorization, IBaseFeatureEndpoint
+        ApplicationDbContext dbContext) : ClientGetUsers(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {

@@ -44,11 +44,13 @@
                         </MudItem>
 
                         <MudItem xs="12">
-                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Username" Margin="Margin.Dense" InputType="InputType.Email" @bind-Value="Data.Username" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Email" OnAdornmentClick="Service" AutoFocus="true" />
+                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Username" Margin="Margin.Dense" Placeholder="Email" InputType="InputType.Email" 
+                                @bind-Value="Data.Username" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Email" OnAdornmentClick="Service" AutoFocus="true" />
                         </MudItem>
 
                         <MudItem xs="12">
-                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Password" Margin="Margin.Dense" @bind-Value="Data.Password" InputType="@_passwordInput" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" OnAdornmentClick="TogglePasswordVisibility" />
+                            <MudTextField T="string" Variant="Variant.Outlined" For="() => Data.Password" Margin="Margin.Dense" Placeholder="Password" @bind-Value="Data.Password" 
+                                InputType="@_passwordInput" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" OnAdornmentClick="TogglePasswordVisibility" />
                         </MudItem>
 
                         <MudItem xs="12" Class="d-flex justify-space-between align-center mt-n5">

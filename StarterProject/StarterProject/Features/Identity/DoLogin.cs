@@ -1,6 +1,8 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Attributes;
+using BlazorFeatures.Base.Server.Extensions;
+using BlazorFeatures.Base.Server.Tools;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -9,9 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.JSInterop;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using StarterProject.Attributes;
 using StarterProject.Database.Entities;
-using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using StarterProject.Tools;
 using System.Security.Claims;
@@ -22,6 +22,7 @@ using ClientDoLogin = StarterProject.Client.Features.Identity.DoLogin;
 namespace StarterProject.Features.Identity
 {
     public class DoLogin(
+        IServiceProvider sp,
         IHttpContextAccessor httpContextAccessor,
         SignInManager<User> signInManager,
         UserManager<User> userManager,
@@ -29,7 +30,7 @@ namespace StarterProject.Features.Identity
         ILogger<DoLogin> logger,
         IJSRuntime jsRuntime,
         NavigationManager navigationManager
-    ) : ClientDoLogin, IBaseFeatureEndpoint
+    ) : ClientDoLogin(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {

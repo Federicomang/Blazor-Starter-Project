@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.OpenApi;
+﻿using BlazorFeatures.Base.Server.Attributes;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using StarterProject.Attributes;
 

@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using BlazorFeatures.Abstractions.Server;
-using BlazorFeatures.Abstractions.Server.Extensions;
+using BlazorFeatures.Base.Server;
+using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -10,11 +10,11 @@ using Microsoft.JSInterop;
 using OpenIddict.Server.AspNetCore;
 using StarterProject.OpenApi;
 using ClientLogout = StarterProject.Client.Features.Identity.Logout;
-using Response = BlazorFeatures.Abstractions.FeatureService.EmptyResponse;
+using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class Logout(IHttpContextAccessor httpContextAccessor, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout, IBaseFeatureEndpoint
+    public class Logout(IServiceProvider sp, IHttpContextAccessor httpContextAccessor, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {

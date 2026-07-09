@@ -9,7 +9,7 @@ namespace StarterProject.Client.Components
         [Inject]
         private IEventManager EventManager { get; set; }
 
-        protected override async Task OnInitializedAsync()
+        /*protected override async Task OnInitializedAsync()
         {
             if(RendererInfo.Name == Constants.RenderModes.WebAssembly)
             {
@@ -23,6 +23,6 @@ namespace StarterProject.Client.Components
             {
                 //await EventManager.InitServer();
             }
-        }
+        }*/
     }
 }

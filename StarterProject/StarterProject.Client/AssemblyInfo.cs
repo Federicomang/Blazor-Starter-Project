@@ -1,4 +1,4 @@
-﻿using BlazorFeatures.Abstractions.Attributes;
-using BlazorFeatures.Abstractions.Enums;
+﻿using BlazorFeatures.Abstractions.Enums;
+using BlazorFeatures.Base.Attributes;
 
 [assembly: FeatureAssembly(RenderType.Client)]
