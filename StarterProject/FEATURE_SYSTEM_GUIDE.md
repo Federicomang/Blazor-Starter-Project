@@ -1,4 +1,4 @@
-# BlazorFeatures 1.2.5: guida architetturale per StarterProject e progetti add-on
+# BlazorFeatures 1.3.1: guida architetturale per StarterProject e progetti add-on
 
 > Documento operativo per agenti e sviluppatori. Prima di modificare o ampliare il sistema, leggere almeno le sezioni **Modello mentale**, **Render mode**, **Flusso di esecuzione**, **Creare una feature** e **Vincoli da non violare**.
 
@@ -14,11 +14,11 @@ Il documento descrive:
 - lo Starter locale `StarterProject`;
 - i pacchetti `BlazorFeatures.Abstractions`, `BlazorFeatures.Base.Client` e `BlazorFeatures.Base.Server`;
 - il sorgente pubblico [Federicomang/BlazorFeatures.Base](https://github.com/Federicomang/BlazorFeatures.Base);
-- il comportamento dei pacchetti **1.2.5** sul branch `master`, revisione [`af063569`](https://github.com/Federicomang/BlazorFeatures.Base/tree/af063569e5738c5f2fbc28da3b682119767d5edf) del 2026-09-03.
+- il comportamento originario del repository pubblico sul branch `master`, revisione [`af063569`](https://github.com/Federicomang/BlazorFeatures.Base/tree/af063569e5738c5f2fbc28da3b682119767d5edf) del 2026-09-03, integrato con le evoluzioni locali destinate ai pacchetti **1.3.1**.
 
-Lo Starter locale referenzia ancora la versione 1.1.6 nei due `.csproj`. Questa guida assume che i progetti host e gli add-on vengano allineati alla **1.2.5**. Le differenze di migrazione dalla 1.1.6 sono riepilogate nella sezione 5.3.
+Questa guida assume che i progetti host e gli add-on vengano allineati alla versione **1.3.1**. Le differenze di migrazione dalle versioni precedenti sono riepilogate nella sezione 5.3.
 
-> **Nota sull'evoluzione locale:** i sorgenti attualmente presenti nei repository locali includono la pipeline successiva alla 1.2.5 descritta nelle sezioni 3, 6, 7 e 8: autorizzazione sulla feature concreta, `IHttpFeatureContext`, status HTTP in `FeatureResponse` e valori condivisi nel contesto. Queste API devono essere pubblicate con una nuova versione e i riferimenti dello Starter devono essere allineati prima di distribuire il progetto.
+> **Nota sulla versione:** la 1.3.1 include l'evoluzione descritta nelle sezioni 3, 5, 6, 7, 8 e 15: autorizzazione sulla feature concreta, `IHttpFeatureContext`, status HTTP in `FeatureResponse`, valori condivisi nel contesto, registry della discovery e diagnostica estensibile.
 
 ## 2. Modello mentale
 
@@ -283,9 +283,9 @@ L'interfaccia generica ereditata è la stessa. Pertanto la risoluzione DI di
 - la classe client nel browser;
 - la classe server nel processo ASP.NET Core.
 
-### 5.2 Registrazione esplicita degli assembly in 1.2.5
+### 5.2 Registrazione esplicita degli assembly in 1.3.1
 
-La 1.2.5 consente di rendere deterministica la discovery senza dipendere dal fatto che il runtime abbia già caricato casualmente una DLL:
+La 1.3.1 consente di rendere deterministica la discovery senza dipendere dal fatto che il runtime abbia già caricato casualmente una DLL:
 
 ```csharp
 services.AddFeatures(config =>
@@ -335,16 +335,16 @@ builder.Services.AddSharedServices(config =>
 });
 ```
 
-### 5.3 Migrazione dello Starter da 1.1.6 a 1.2.5
+### 5.3 Migrazione dello Starter dalle versioni precedenti alla 1.3.1
 
 Aggiornare insieme:
 
 ```xml
 <!-- StarterProject.Client.csproj -->
-<PackageReference Include="BlazorFeatures.Base.Client" Version="1.2.5" />
+<PackageReference Include="BlazorFeatures.Base.Client" Version="1.3.1" />
 
 <!-- StarterProject.csproj -->
-<PackageReference Include="BlazorFeatures.Base.Server" Version="1.2.5" />
+<PackageReference Include="BlazorFeatures.Base.Server" Version="1.3.1" />
 ```
 
 Differenze rilevanti rispetto alla 1.1.6:
@@ -356,13 +356,19 @@ Differenze rilevanti rispetto alla 1.1.6:
 - ordinamento query esteso con `QueryableFilterOptions<T,K>`;
 - i package client e server marcano anche i propri assembly con `FeatureAssembly(Client/Server)`, permettendo la discovery del corretto handler interno delle policy;
 - le policy vengono raccolte anche dagli assembly del render type opposto, pur senza registrarne le feature nel runtime corrente;
-- `FeaturePolicyTools` è pubblico.
+- `FeaturePolicyTools` è pubblico;
+- autorizzazione eseguita sulla Feature server concreta anche nel percorso in-process;
+- `IFeatureContext` con `OperationId`, origine, catena e valori condivisi;
+- `IHttpFeatureContext` per i risultati HTTP personalizzati senza usare `HttpContext.Items`;
+- `FeatureResponse<T>.StatusCode` per trasportare lo status HTTP;
+- registry immutabile della discovery con validazione anticipata e risoluzione deterministica;
+- diagnostica estensibile tramite `ActivitySource`, `Meter` e logging strutturato.
 
 Il comportamento base di dispatch client/server, il modello di ereditarietà e `UseFeatureEndpoints` rimangono invariati.
 
-### 5.4 Feature generiche in 1.2.5
+### 5.4 Feature generiche in 1.3.1
 
-La 1.2.5 aggiunge `FeatureTypeResolver` per le implementazioni open-generic. La risoluzione segue questo ordine:
+La 1.3.1 include `FeatureTypeResolver` per le implementazioni open-generic. La risoluzione segue questo ordine:
 
 1. prova a risolvere direttamente `IBaseFeature<TRequest,TResponse>` da DI;
 2. se non esiste una registrazione chiusa, cerca tra le classi feature generiche scoperte;
@@ -372,6 +378,33 @@ La 1.2.5 aggiunge `FeatureTypeResolver` per le implementazioni open-generic. La 
 6. memorizza il risultato in cache per la coppia `(Request, Response)`.
 
 Se non trova alcuna corrispondenza genera `InvalidOperationException`; fa lo stesso se più feature generiche corrispondono. Evitare template sovrapposti o ambigui e aggiungere test di risoluzione per ogni coppia concreta.
+
+### 5.5 Registro e validazione della discovery nell'evoluzione locale
+
+La 1.3.1 costruisce durante `AddFeatures` un registro immutabile, disponibile da DI tramite `IFeatureRegistry` e tramite il compatibile `FeatureSystemContainerService`.
+
+Il registro espone:
+
+- `Assemblies`: assembly analizzati, relativo `RenderType`, tipi memorizzati e indicazione della registrazione esplicita;
+- `Features`: tutti i contratti client/server scoperti;
+- `ActiveFeatures`: i soli contratti attivi nel runtime corrente;
+- `Resolve(requestType, responseType)`: risoluzione diagnostica della Feature chiusa o open-generic.
+
+Ogni `FeatureDescriptor` descrive contratto, request, response, implementazione, assembly, render type, lifetime, stato attivo e natura open-generic. Una risoluzione exact ha precedenza su una generica compatibile.
+
+La registrazione fallisce immediatamente quando rileva condizioni certamente non valide, tra cui:
+
+- più Feature attive per lo stesso contratto chiuso;
+- Feature generiche con parametri che non possono essere inferiti dal contratto;
+- tipi Feature non costruibili da DI;
+- più handler interni per lo stesso runtime;
+- nomi di policy duplicati;
+- assembly aggiunti esplicitamente senza `[FeatureAssembly(...)]`;
+- errori di caricamento dei tipi di un assembly annotato.
+
+Le implementazioni appartenenti al render target opposto restano nel catalogo ma non partecipano alla validazione delle collisioni attive. Per questo una Feature solo client o solo server continua a essere valida.
+
+La reflection sui tipi viene eseguita una volta sola. Endpoint e integrazioni DbContext riutilizzano poi i tipi memorizzati nel registro. Lo Starter passa esplicitamente l'assembly client nel browser e gli assembly client/server nell'host ASP.NET Core; la scansione automatica dell'`AppDomain` rimane disponibile per compatibilità.
 
 ## 6. Flusso di esecuzione completo
 
@@ -660,7 +693,7 @@ Lo Starter attuale non effettua questa chiamata nel proprio `ApplicationDbContex
 
 Una classe di opzioni può implementare `IFeatureOptions<TFeature>`. `AddFeatures` ne crea un'istanza e applica l'eventuale `OptionsConfigurator` globale. Usare questo meccanismo per configurazione statica di feature; usare il normale options pattern dell'host quando servono binding da `IConfiguration`, validazione complessa o secret.
 
-### 10.7 Paginazione e ordinamento query in 1.2.5
+### 10.7 Paginazione e ordinamento query in 1.3.1
 
 `BlazorFeatures.Base.Server` fornisce:
 
@@ -726,9 +759,9 @@ Non considerarlo ancora un trasporto cross-render-mode completo:
 
 Per un nuovo progetto di eventi, riusare il pattern feature e l'interfaccia pubblica, non assumere che l'implementazione Starter sia pronta per produzione.
 
-### Supporto SSE della 1.2.5
+### Supporto SSE della 1.3.1
 
-La 1.2.5 espone `HttpClientExtensions.SSE<T>`. Il metodo:
+La 1.3.1 espone `HttpClientExtensions.SSE<T>`. Il metodo:
 
 1. invia un `HttpRequestMessage` con `ResponseHeadersRead`;
 2. se lo status non è di successo o il media type non è `text/event-stream`, converte la risposta HTTP in `FeatureResponse<T>`;
@@ -812,7 +845,7 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 2. La classe server deve ereditare la classe client o implementare esattamente la stessa `IBaseFeature<TRequest,TResponse>`.
 3. `HandleServer` nel client deve essere `virtual` se il server lo sovrascrive.
 4. L'assembly deve avere `[FeatureAssembly(RenderType.Client|Server|Both)]`.
-5. Includere esplicitamente l'assembly nella configurazione 1.2.5 di `AddFeatures`.
+5. Includere esplicitamente l'assembly nella configurazione 1.3.1 di `AddFeatures`.
 6. Non mettere codice o dipendenze server-only nell'assembly client.
 7. Non confondere `RenderType.Both` con `InteractiveAuto`.
 8. Implementare `IBaseFeatureAuthorization` sulla classe feature server e replicare la policy sull'endpoint HTTP.
@@ -824,7 +857,44 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 14. Riutilizzare lo stesso `IFeatureContext` e `CancellationToken` nelle feature annidate.
 15. Non salvare segreti in `IFeatureContext.Values` e non serializzare request complete nei log.
 
-## 15. Strategia di test minima
+## 15. Diagnostica e add-on di osservabilita
+
+`BlazorFeatures.Base.Client` produce diagnostica tramite le API standard .NET e non dipende dall'SDK OpenTelemetry:
+
+- `BlazorFeaturesTelemetry.ActivitySourceName` (`BlazorFeatures`) identifica la sorgente delle tracce;
+- `BlazorFeaturesTelemetry.MeterName` (`BlazorFeatures`) identifica la sorgente delle metriche;
+- ogni `IFeatureService.Run` genera una activity interna, mantenendo automaticamente la relazione padre/figlio tra feature annidate;
+- contatori e istogrammi descrivono esecuzioni, fallimenti e durata;
+- gli scope di `ILogger` includono `OperationId`, tipi request/response, invocation source e render target.
+
+I nomi pubblici di source, meter, strumenti e tag sono contratti di integrazione: un add-on deve usarli senza accedere ai dettagli interni di `FeatureService`.
+
+La telemetria non include automaticamente request, response o `IFeatureContext.Values`. Messaggio e stack trace delle eccezioni sono esclusi dalle activity e dai log per impostazione predefinita. L'applicazione puo configurare il comportamento senza installare OpenTelemetry:
+
+```csharp
+builder.Services.Configure<FeatureTelemetryOptions>(options =>
+{
+    options.TracingEnabled = true;
+    options.MetricsEnabled = true;
+    options.IncludeExceptionDetails = false;
+});
+```
+
+Un add-on OpenTelemetry separato deve referenziare `BlazorFeatures.Base.Client`, iscrivere il provider alle sorgenti pubbliche e lasciare la scelta dell'exporter all'host:
+
+```csharp
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource(BlazorFeaturesTelemetry.ActivitySourceName))
+    .WithMetrics(metrics => metrics
+        .AddMeter(BlazorFeaturesTelemetry.MeterName));
+```
+
+L'host puo poi aggiungere OTLP, Application Insights, console o un altro exporter. Un sistema non basato su OpenTelemetry puo usare direttamente `ActivityListener`, `MeterListener` e un normale provider `ILogger`.
+
+`OperationId` rimane l'identificatore applicativo condiviso nell'`IFeatureContext`; `Activity.TraceId` e `SpanId` rappresentano invece la correlazione diagnostica standard. Non usare `OperationId`, user ID o valori univoci come dimensioni delle metriche.
+
+## 16. Strategia di test minima
 
 Per ogni feature/add-on verificare almeno:
 
@@ -837,9 +907,9 @@ Per ogni feature/add-on verificare almeno:
 - **discovery test**: l'assembly add-on compare nel `FeatureSystemContainerService` corretto;
 - **event add-on**: isolamento tra utenti/tab, reconnessione, duplicati, ordine e loop.
 
-## 16. Procedura per un agente che crea un nuovo add-on
+## 17. Procedura per un agente che crea un nuovo add-on
 
-1. Verificare che host e add-on usino tutti BlazorFeatures 1.2.5.
+1. Verificare che host e add-on usino tutti BlazorFeatures 1.3.1.
 2. Identificare i runtime supportati e i render mode dei componenti consumatori.
 3. Creare la coppia `Addon.Client`/`Addon.Server` e i relativi `AssemblyInfo.cs`.
 4. Definire nel client il contratto serializzabile `Request/Response` e il path API.
@@ -852,7 +922,7 @@ Per ogni feature/add-on verificare almeno:
 11. Eseguire una revisione di authorization, antiforgery, serializzazione e lifetime.
 12. Documentare nel README dell'add-on le modifiche richieste a `Program.cs`, router, DbContext e pipeline.
 
-## 17. Riferimenti rapidi nel repository Starter
+## 18. Riferimenti rapidi nel repository Starter
 
 - bootstrap server: `StarterProject/Program.cs`;
 - bootstrap WASM: `StarterProject.Client/Program.cs`;
@@ -866,7 +936,7 @@ Per ogni feature/add-on verificare almeno:
 - esempio feature annidata: `StarterProject/Features/Identity/CreateUser.cs`;
 - prototipo eventi: coppia `Features/Private/EventManager.cs`.
 
-## 18. Sintesi finale
+## 19. Sintesi finale
 
 Il sistema realizza un'unica API applicativa (`IFeatureService.Run`) sopra due modalità di esecuzione:
 

@@ -10,7 +10,8 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthenticationStateDeserialization();
 
-builder.Services.AddSharedServices();
+builder.Services.AddSharedServices(features =>
+    features.AddAssemblyContaining<ApplicationConstants>());
 
 builder.Services.AddHttpClient(ApplicationConstants.DefaultHttpClientName, client =>
 {

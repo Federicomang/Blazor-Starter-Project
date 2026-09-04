@@ -250,7 +250,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddSharedServices();
+builder.Services.AddSharedServices(features =>
+    features.AddAssemblies(clientAssembly, thisAssembly));
 
 builder.Services.AddScoped<IServerFeatureService, ServerFeatureService>();
 builder.Services.AddScoped<ClaimsEnricher>();
