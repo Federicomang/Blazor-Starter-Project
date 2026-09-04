@@ -6,10 +6,18 @@ using StarterProject.Client.Infrastructure;
 using StarterProject.Database.Entities;
 using StarterProject.Extensions;
 
+using BlazorFeatures.Base.Server;
+using Microsoft.AspNetCore.Authorization;
+
 namespace StarterProject.Features.Identity.Shared
 {
-    public class AssignRoles(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : IBaseFeature<AssignRoles.Request, AssignRoles.Response>
+    public class AssignRoles(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : IBaseFeature<AssignRoles.Request, AssignRoles.Response>, IBaseFeatureAuthorization
     {
+        private static void BuildPolicy(AuthorizationPolicyBuilder policy)
+        {
+            policy.RequireRole(ApplicationRoles.Superadmin, ApplicationRoles.Administrator);
+        }
+
         public class Request : IBaseFeatureRequest<Response>
         {
             public required User User { get; set; }
@@ -19,7 +27,6 @@ namespace StarterProject.Features.Identity.Shared
 
         public class Response
         {
-            public int StatusCode { get; set; }
         }
 
         public class Validator : AbstractValidator<Request>
@@ -46,7 +53,9 @@ namespace StarterProject.Features.Identity.Shared
 
             if(thisUser == null)
             {
-                return FeatureResponse<Response>.AsFailure(new() { StatusCode = StatusCodes.Status401Unauthorized }, messages: ["User not authenticated"]);
+                return FeatureResponse<Response>.AsFailure(
+                    messages: ["User not authenticated"],
+                    statusCode: System.Net.HttpStatusCode.Unauthorized);
             }
 
             var thisUserRoles = await userManager.GetRolesAsync(thisUser);
@@ -55,13 +64,17 @@ namespace StarterProject.Features.Identity.Shared
             {
                 if(!thisUserRoles.Contains(ApplicationRoles.Superadmin))
                 {
-                    return FeatureResponse<Response>.AsFailure(messages: ["An invalid role is in the list"]);
+                    return FeatureResponse<Response>.AsFailure(
+                        messages: ["An invalid role is in the list"],
+                        statusCode: System.Net.HttpStatusCode.Forbidden);
                 }
             }
 
             if (!thisUserRoles.Any(x => x == ApplicationRoles.Superadmin || x == ApplicationRoles.Administrator))
             {
-                return FeatureResponse<Response>.AsFailure(messages: ["The user must be an Administrator to apply roles"]);
+                return FeatureResponse<Response>.AsFailure(
+                    messages: ["The user must be an Administrator to apply roles"],
+                    statusCode: System.Net.HttpStatusCode.Forbidden);
             }
 
             var roles = await userManager.GetRolesAsync(request.User);
@@ -72,7 +85,7 @@ namespace StarterProject.Features.Identity.Shared
                 var removeResult = await userManager.RemoveFromRolesAsync(request.User, roles);
                 if(!removeResult.Succeeded)
                 {
-                    return FeatureResponse<Response>.AsFailure(data: new() { StatusCode = StatusCodes.Status500InternalServerError }, messages: ["An error as occurred"]);
+                    return FeatureResponse<Response>.AsFailure(messages: ["An error as occurred"]);
                 }
             }
             else
@@ -89,8 +102,10 @@ namespace StarterProject.Features.Identity.Shared
             else
             {
                 var errors = result.Errors.Select(e => e.Description).ToList();
-                return FeatureResponse<Response>.AsFailure(data: new() { StatusCode = StatusCodes.Status500InternalServerError }, messages: errors);
+                return FeatureResponse<Response>.AsFailure(messages: errors);
             }
         }
+
+        void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
     }
 }

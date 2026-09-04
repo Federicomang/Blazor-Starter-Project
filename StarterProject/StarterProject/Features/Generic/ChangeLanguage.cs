@@ -12,12 +12,10 @@ namespace StarterProject.Features.Generic
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            FeatureResponse<Response> response;
             var httpContext = httpContextAccessor.HttpContext;
 
             if (httpContext != null)
             {
-                int statusCode;
                 var requestCulture = new RequestCulture(request.Culture);
 
                 if (ApplicationConstants.SupportedCultures.Any(x => x.Name == requestCulture.Culture.Name))
@@ -30,30 +28,24 @@ namespace StarterProject.Features.Generic
                         Expires = DateTimeOffset.UtcNow.AddYears(1),
                         IsEssential = true
                     });
-                    response = FeatureResponse<Response>.AsSuccess(new());
-                    statusCode = StatusCodes.Status200OK;
+                    return FeatureResponse<Response>.AsSuccess(new());
                 }
                 else
                 {
-                    response = FeatureResponse<Response>.AsFailure(messages: ["The specified culture is not supported."]);
-                    statusCode = StatusCodes.Status400BadRequest;
+                    return FeatureResponse<Response>.AsFailure(
+                        messages: ["The specified culture is not supported."],
+                        statusCode: System.Net.HttpStatusCode.BadRequest);
                 }
-                httpContext.SetFeatureApiResponse(Results.Json(response, statusCode: statusCode));
-            }
-            else
-            {
-                response = FeatureResponse<Response>.AsFailure(messages: ["Unable to change language."]);
             }
 
-            return response;
+            return FeatureResponse<Response>.AsFailure(messages: ["Unable to change language."]);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
             builder.MapPost(ApiPath, async (HttpContext context, Request request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(request);
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, request);
             });
         }
     }

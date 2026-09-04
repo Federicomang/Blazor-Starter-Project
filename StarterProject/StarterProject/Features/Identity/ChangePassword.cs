@@ -1,6 +1,7 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Base.Server;
 using BlazorFeatures.Base.Server.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StarterProject.Database.Entities;
@@ -10,8 +11,13 @@ using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class ChangePassword(IServiceProvider sp, IHttpContextAccessor httpContextAccessor, UserManager<User> userManager) : ClientChangePassword(sp), IBaseFeatureEndpoint
+    public class ChangePassword(IServiceProvider sp, IHttpContextAccessor httpContextAccessor, UserManager<User> userManager) : ClientChangePassword(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
+        private static void BuildPolicy(AuthorizationPolicyBuilder policy)
+        {
+            policy.RequireAuthenticatedUser();
+        }
+
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             FeatureResponse<Response> response;
@@ -38,17 +44,18 @@ namespace StarterProject.Features.Identity
                     statusCode = StatusCodes.Status400BadRequest;
                 }
             }
-            httpContext.SetFeatureApiResponse(Results.Json(response, statusCode: statusCode));
-            return response;
+            return response.WithStatusCode((System.Net.HttpStatusCode)statusCode);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
             builder.MapPost(ApiPath, async (HttpContext context, Request request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(request);
-                await context.ApplyApiFeatureResponse();
-            }).WithTags(OpenApiDocumentGroups.Identity);
+                await context.RunFeature(featureService, request);
+            }).RequireAuthorization(BuildPolicy)
+                .WithTags(OpenApiDocumentGroups.Identity);
         }
+
+        void IBaseFeatureAuthorization.BuildPolicy(AuthorizationPolicyBuilder policy) => BuildPolicy(policy);
     }
 }

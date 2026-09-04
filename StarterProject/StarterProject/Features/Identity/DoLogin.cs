@@ -23,7 +23,6 @@ namespace StarterProject.Features.Identity
 {
     public class DoLogin(
         IServiceProvider sp,
-        IHttpContextAccessor httpContextAccessor,
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         IOpenIddictApplicationManager applicationManager,
@@ -34,8 +33,7 @@ namespace StarterProject.Features.Identity
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            var httpContext = httpContextAccessor.HttpContext!;
-            if (httpContext.IsSocketConnection()) //è in modalità InteractiveServer (quindi comunica tramite SignalR che è una connessione socket)
+            if (featureContext is not IHttpFeatureContext httpFeatureContext)
             {
                 var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
                 {
@@ -62,13 +60,19 @@ namespace StarterProject.Features.Identity
                     return FeatureResponse<Response>.Create(false, null);
                 }
             }
-            else if(httpContext.Request.Method == "POST")
+            else if(httpFeatureContext.HttpContext.Request.Method == "POST")
             {
-                var response = await ManageLogin(httpContext);
-                httpContext.SetFeatureApiResponse(response.Data!);
-                return FeatureResponse<Response>.Create(response.Success, new Response(), response.Messages); //Non utilizzo in questo caso il FeatureResponse
+                var response = await ManageLogin(httpFeatureContext.HttpContext, featureContext.OperationId);
+                httpFeatureContext.SetHttpResult(featureRequest, response.Data!);
+                return FeatureResponse<Response>.Create(
+                    response.Success,
+                    new Response(),
+                    response.Messages,
+                    statusCode: response.StatusCode); // La risposta HTTP effettiva è l'IResult custom.
             }
-            return FeatureResponse<Response>.AsFailure(null);
+
+            httpFeatureContext.SetHttpResult(featureRequest, Results.BadRequest());
+            return FeatureResponse<Response>.AsFailure(statusCode: System.Net.HttpStatusCode.BadRequest);
         }
 
         private async Task<User?> GetUser(string mailOrUsername)
@@ -78,7 +82,7 @@ namespace StarterProject.Features.Identity
             return user;
         }
 
-        private async Task<FeatureResponse<IResult>> ManageLogin(HttpContext httpContext)
+        private async Task<FeatureResponse<IResult>> ManageLogin(HttpContext httpContext, Guid operationId)
         {
             var request = httpContext.GetOpenIddictServerRequest();
             ClaimsPrincipal? principal = null;
@@ -86,14 +90,14 @@ namespace StarterProject.Features.Identity
             {
                 if (request == null)
                 {
-                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid request" }), ["Invalid request"]);
+                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid request" }), ["Invalid request"], statusCode: System.Net.HttpStatusCode.BadRequest);
                 }
 
                 if (request.GrantType == GrantTypes.Password)
                 {
                     var user = await GetUser(request.Username!);
                     if (user == null || !await userManager.CheckPasswordAsync(user, request.Password!))
-                        return FeatureResponse<IResult>.AsFailure(Results.Forbid(authenticationSchemes: [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]), ["Credentials not correct"]);
+                        return FeatureResponse<IResult>.AsFailure(Results.Forbid(authenticationSchemes: [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]), ["Credentials not correct"], statusCode: System.Net.HttpStatusCode.Forbidden);
 
                     principal = await signInManager.CreateUserPrincipalAsync(user);
 
@@ -107,7 +111,7 @@ namespace StarterProject.Features.Identity
                     // Rilegge e valida il refresh token ricevuto
                     var result = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                     if (result is null || result.Principal is null)
-                        return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid refresh token" }), ["Invalid refresh token"]);
+                        return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid refresh token" }), ["Invalid refresh token"], statusCode: System.Net.HttpStatusCode.BadRequest);
 
                     principal = result.Principal;
 
@@ -155,7 +159,7 @@ namespace StarterProject.Features.Identity
 
                 if (principal == null)
                 {
-                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Unsupported grant type" }), ["Unsupported grant type"]);
+                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Unsupported grant type" }), ["Unsupported grant type"], statusCode: System.Net.HttpStatusCode.BadRequest);
                 }
                 else
                 {
@@ -178,7 +182,11 @@ namespace StarterProject.Features.Identity
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Request: {@Request}", request);
+                logger.LogError(ex,
+                    "Login failed - Grant type: {GrantType} - Client: {ClientId} - Operation: {OperationId}",
+                    request?.GrantType,
+                    request?.ClientId,
+                    operationId);
                 return FeatureResponse<IResult>.AsFailure(Results.InternalServerError(new ErrorResponse { Error = "Internal server error" }), ["Internal server error"]);
             }
         }
@@ -187,8 +195,7 @@ namespace StarterProject.Features.Identity
         {
             builder.MapPost(ApiPath, async (HttpContext context, FormBound<Request> request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(request.Value);
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, request.Value);
             }).WithTags(OpenApiDocumentGroups.Identity)
                 .WithMetadata(new ExplicitOpenApiRequestAttribute(new(typeof(Request), "application/x-www-form-urlencoded")))
                 .WithMetadata(new ExplicitOpenApiResponseAttribute(StatusCodes.Status200OK, [new(typeof(Response))]))

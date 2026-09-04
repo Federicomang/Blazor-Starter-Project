@@ -1,6 +1,6 @@
 ﻿using BlazorFeatures.Abstractions;
-using Microsoft.Extensions.Options;
-using System.Text.Json;
+using BlazorFeatures.Base.Server;
+
 namespace StarterProject.Middlewares
 {
     public class ExceptionMiddleware(RequestDelegate next)
@@ -11,19 +11,26 @@ namespace StarterProject.Middlewares
             {
                 await next(httpContext);
             }
+            catch (OperationCanceledException) when (httpContext.RequestAborted.IsCancellationRequested)
+            {
+                // The client disconnected: do not log or attempt to write a response.
+            }
             catch (Exception e)
             {
-                var feature = httpContext.Items["FeatureRequest"];
-                var jsonOptions = httpContext.RequestServices.GetService<IOptions<JsonSerializerOptions>>();
+                var featureContext = httpContext.Features.Get<IHttpFeatureContext>();
+                var request = featureContext?.FeatureChain.LastOrDefault();
                 var logger = httpContext.RequestServices.GetService<ILogger<ExceptionMiddleware>>();
-                var payload = feature == null ? null : JsonSerializer.Serialize(feature, feature.GetType(), jsonOptions?.Value);
                 if (logger?.IsEnabled(LogLevel.Error) == true)
                 {
                     var endpoint = httpContext.GetEndpoint()?.DisplayName;
-                    logger.LogError(e, "An error as occurred - Endpoint: {endpoint} - Request Payload: {payload}", endpoint, payload);
+                    logger.LogError(e,
+                        "An error has occurred - Endpoint: {Endpoint} - Feature: {Feature} - Operation: {OperationId}",
+                        endpoint,
+                        request?.GetType().FullName,
+                        featureContext?.OperationId);
                 }
                 IResult result;
-                if (payload == null)
+                if (request == null)
                 {
                     if (e is BadHttpRequestException ex)
                     {

@@ -12,7 +12,7 @@ using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class DeleteUser(IServiceProvider sp, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : ClientDeleteUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
+    public class DeleteUser(IServiceProvider sp, UserManager<User> userManager) : ClientDeleteUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
         {
@@ -23,8 +23,6 @@ namespace StarterProject.Features.Identity
         {
             FeatureResponse<Response> response;
             int statusCode;
-
-            var httpContext = httpContextAccessor.HttpContext;
 
             var user = await userManager.FindByIdAsync(request.UserId);
 
@@ -48,17 +46,14 @@ namespace StarterProject.Features.Identity
                 statusCode = StatusCodes.Status400BadRequest;
             }
 
-            httpContext?.SetFeatureApiResponse(Results.Json(response, statusCode: statusCode));
-
-            return response;
+            return response.WithStatusCode((System.Net.HttpStatusCode)statusCode);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
             builder.MapPost(ApiPath, async (HttpContext context, Request request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(request);
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, request);
             }).RequireAuthorization(BuildPolicy)
                 .WithTags(OpenApiDocumentGroups.Identity);
         }

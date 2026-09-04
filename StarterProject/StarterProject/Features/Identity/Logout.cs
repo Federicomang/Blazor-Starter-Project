@@ -14,12 +14,11 @@ using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class Logout(IServiceProvider sp, IHttpContextAccessor httpContextAccessor, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout(sp), IBaseFeatureEndpoint
+    public class Logout(IServiceProvider sp, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            var httpContext = httpContextAccessor.HttpContext!;
-            if(httpContext.IsSocketConnection())
+            if(featureContext is not IHttpFeatureContext httpFeatureContext)
             {
                 var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
                 {
@@ -31,10 +30,10 @@ namespace StarterProject.Features.Identity
                 });
                 return FeatureResponse<Response>.Create(jsResponse.StatusCode >= 200 && jsResponse.StatusCode < 400, new());
             }
-            else if(httpContext.Request.Method == "POST" || httpContext.Request.Method == "GET")
+            else if(httpFeatureContext.HttpContext.Request.Method == "POST" || httpFeatureContext.HttpContext.Request.Method == "GET")
             {
                 // Recupera la request OpenID Connect
-                var oidRequest = httpContext.GetOpenIddictServerRequest();
+                var oidRequest = httpFeatureContext.HttpContext.GetOpenIddictServerRequest();
 
                 // Redirect post-logout
                 var redirectUri = oidRequest?.PostLogoutRedirectUri;
@@ -46,23 +45,21 @@ namespace StarterProject.Features.Identity
 
                 var result = Results.SignOut(authenticationProps, [IdentityConstants.ApplicationScheme, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
 
-                httpContext.SetFeatureApiResponse(result);
+                httpFeatureContext.SetHttpResult(request, result);
                 return FeatureResponse<Response>.AsSuccess(new Response());
             }
-            httpContext.SetFeatureApiResponse(Results.BadRequest());
-            return FeatureResponse<Response>.AsFailure(null);
+            httpFeatureContext.SetHttpResult(request, Results.BadRequest());
+            return FeatureResponse<Response>.AsFailure(statusCode: System.Net.HttpStatusCode.BadRequest);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
             builder.MapPost(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
-                await featureService.Run(new Request());
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, new Request());
             }).WithTags(OpenApiDocumentGroups.Identity);
 
             builder.MapGet(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
-                await featureService.Run(new Request());
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, new Request());
             }).WithTags(OpenApiDocumentGroups.Identity);
         }
     }

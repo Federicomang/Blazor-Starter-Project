@@ -15,7 +15,6 @@ namespace StarterProject.Features.Identity
     public class CreateCustomer(
         IServiceProvider sp,
         UserManager<User> userManager,
-        IHttpContextAccessor httpContextAccessor,
         IFeatureService featureService) : ClientCreateUser(sp), IBaseFeatureAuthorization, IBaseFeatureEndpoint
     {
         private static void BuildPolicy(AuthorizationPolicyBuilder policy)
@@ -27,8 +26,6 @@ namespace StarterProject.Features.Identity
         {
             FeatureResponse<Response> response;
             int statusCode;
-
-            var httpContext = httpContextAccessor.HttpContext;
 
             var user = new User()
             {
@@ -50,7 +47,7 @@ namespace StarterProject.Features.Identity
                         User = user,
                         Roles = request.UserInfo.Roles,
                         ReplaceExistingRoles = true
-                    }, cancellationToken);
+                    }, featureContext, cancellationToken);
                     response = res.ConvertTo(responseData, null);
                     if (res.Success)
                     {
@@ -59,7 +56,7 @@ namespace StarterProject.Features.Identity
                     else
                     {
                         await userManager.DeleteAsync(user);
-                        statusCode = res.Data == null ? StatusCodes.Status400BadRequest : res.Data.StatusCode;
+                        statusCode = (int)(res.StatusCode ?? System.Net.HttpStatusCode.InternalServerError);
                     }
                 }
                 else
@@ -74,17 +71,14 @@ namespace StarterProject.Features.Identity
                 statusCode = StatusCodes.Status400BadRequest;
             }
 
-            httpContext?.SetFeatureApiResponse(Results.Json(response, statusCode: statusCode));
-
-            return response;
+            return response.WithStatusCode((System.Net.HttpStatusCode)statusCode);
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
             builder.MapPost(ApiPath, async (HttpContext context, Request request, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(request);
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, request);
             }).RequireAuthorization(BuildPolicy)
                 .WithTags(OpenApiDocumentGroups.Identity);
         }

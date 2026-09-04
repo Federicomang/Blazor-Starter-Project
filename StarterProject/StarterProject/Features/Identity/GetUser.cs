@@ -63,8 +63,7 @@ namespace StarterProject.Features.Identity
                     statusCode = 500;
                 }
 
-                httpContext.SetFeatureApiResponse(Results.Json(response, statusCode: statusCode));
-                return response;
+                return response.WithStatusCode((System.Net.HttpStatusCode)statusCode);
             }
         }
 
@@ -87,8 +86,7 @@ namespace StarterProject.Features.Identity
             var apiPath = HttpTools.BuildServerApi(ApiPath, "{userId}");
             builder.MapGet(apiPath, async (HttpContext context, string userId, [FromServices] IFeatureService featureService) =>
             {
-                await featureService.Run(new Request() { UserId = userId });
-                await context.ApplyApiFeatureResponse();
+                await context.RunFeature(featureService, new Request() { UserId = userId });
             }).RequireAuthorization(BuildPolicy)
                 .WithTags(OpenApiDocumentGroups.Identity);
         }
