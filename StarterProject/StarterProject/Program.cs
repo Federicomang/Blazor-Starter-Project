@@ -1,4 +1,5 @@
 ﻿using BlazorFeatures.Abstractions;
+using BlazorFeatures.Base.Server;
 using BlazorFeatures.Base.Server.Extensions;
 using FluentValidation;
 using Hangfire;
@@ -250,10 +251,11 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
+builder.Services.AddScoped<IFeaturePrincipalProvider, StarterFeaturePrincipalProvider>();
+builder.Services.AddServerFeatureBehavior<FluentValidationFeatureBehavior>();
 builder.Services.AddSharedServices(features =>
     features.AddAssemblies(clientAssembly, thisAssembly));
 
-builder.Services.AddScoped<IServerFeatureService, ServerFeatureService>();
 builder.Services.AddScoped<ClaimsEnricher>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(x => x.GetRequiredService<CustomAuthStateProvider>());
