@@ -107,12 +107,11 @@ namespace StarterProject.Infrastructure
                 if(newPrincipal)
                 {
                     var oldIdentity = result.Identity!;
-                    var newIdentity = new ClaimsIdentity(oldIdentity.AuthenticationType);
-
-                    foreach (var claim in oldIdentity.Claims)
-                        newIdentity.AddClaim(claim);
-
-                    result.Identity = newIdentity;
+                    result.Identity = new ClaimsIdentity(
+                        oldIdentity.Claims,
+                        oldIdentity.AuthenticationType,
+                        oldIdentity.NameClaimType,
+                        oldIdentity.RoleClaimType);
                 }
 
                 foreach (var claim in cached!)
