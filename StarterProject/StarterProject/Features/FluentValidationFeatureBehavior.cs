@@ -11,6 +11,8 @@ namespace StarterProject.Features
     public sealed class FluentValidationFeatureBehavior(
         IServiceProvider serviceProvider) : IServerFeatureBehavior
     {
+        public const string DisableBehavior = "DisableFeatureFluentValidation";
+
         public int Order => 1_000;
 
         public async Task<FeatureResponse<TResponse>> HandleAsync<TResponse>(
@@ -19,6 +21,12 @@ namespace StarterProject.Features
             CancellationToken cancellationToken = default)
             where TResponse : class
         {
+            if(context.FeatureContext.Values.TryGetValue(DisableBehavior, out var disableValidationVal) 
+                && disableValidationVal is bool disableValidation && disableValidation)
+            {
+                return await next();
+            }
+
             var requestType = context.Request.GetType();
             if (requestType.GetCustomAttribute<DisableServerFluentValidationAttribute>() != null)
                 return await next();
