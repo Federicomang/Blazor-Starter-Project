@@ -54,12 +54,12 @@ namespace StarterProject.Features.Identity
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
-            builder.MapPost(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
-                await context.RunFeature(featureService, new Request());
+            builder.MapPost(ApiPath, async (HttpContext context) => {
+                await context.RunFeature(new Request());
             }).WithTags(OpenApiDocumentGroups.Identity);
 
-            builder.MapGet(ApiPath, async (HttpContext context, [FromServices] IFeatureService featureService) => {
-                await context.RunFeature(featureService, new Request());
+            builder.MapGet(ApiPath, async (HttpContext context) => {
+                await context.RunFeature(new Request());
             }).WithTags(OpenApiDocumentGroups.Identity);
         }
     }

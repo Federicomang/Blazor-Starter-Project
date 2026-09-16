@@ -29,7 +29,7 @@ namespace StarterProject.Client.Features.Identity
 
         public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            var response = await HttpClient!.GetAsync($"{ApiPath}?{HttpTools.ToUrlEncodedString(request)}", cancellationToken);
+            var response = await HttpClient!.GetAsync($"{ApiPath}?{HttpTools.ToQueryString(request)}", cancellationToken);
             return await response.AsFeatureResponse<Response>(JsonOptions);
         }
 

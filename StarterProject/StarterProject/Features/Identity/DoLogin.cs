@@ -41,7 +41,7 @@ namespace StarterProject.Features.Identity
                     headers = new Dictionary<string, string> {
                         { "Content-Type", "application/x-www-form-urlencoded" }
                     },
-                    body = HttpTools.ToUrlEncodedString(featureRequest)
+                    body = HttpTools.ToQueryString(featureRequest)
                 });
                 if(jsResponse.StatusCode == StatusCodes.Status200OK)
                 {
@@ -193,9 +193,9 @@ namespace StarterProject.Features.Identity
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
-            builder.MapPost(ApiPath, async (HttpContext context, FormBound<Request> request, [FromServices] IFeatureService featureService) =>
+            builder.MapPost(ApiPath, async (HttpContext context, FormBound<Request> request) =>
             {
-                await context.RunFeature(featureService, request.Value);
+                await context.RunFeature(request.Value);
             }).WithTags(OpenApiDocumentGroups.Identity)
                 .WithMetadata(new ExplicitOpenApiRequestAttribute(new(typeof(Request), "application/x-www-form-urlencoded")))
                 .WithMetadata(new ExplicitOpenApiResponseAttribute(StatusCodes.Status200OK, [new(typeof(Response))]))

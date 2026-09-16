@@ -88,7 +88,7 @@ namespace StarterProject.Client.Features.Identity
 
         public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            var content = new StringContent(HttpTools.ToUrlEncodedString(request), Encoding.UTF8, "application/x-www-form-urlencoded");
+            var content = new StringContent(HttpTools.ToQueryString(request), Encoding.UTF8, "application/x-www-form-urlencoded");
             var response = await HttpClient!.PostAsync(ApiPath, content, cancellationToken);
             return await response.AsFeatureResponse(content =>
             {

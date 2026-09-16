@@ -43,9 +43,9 @@ namespace StarterProject.Features.Generic
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
-            builder.MapPost(ApiPath, async (HttpContext context, Request request, [FromServices] IFeatureService featureService) =>
+            builder.MapPost(ApiPath, async (HttpContext context, Request request) =>
             {
-                await context.RunFeature(featureService, request);
+                await context.RunFeature(request);
             });
         }
     }

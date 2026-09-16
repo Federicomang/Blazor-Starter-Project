@@ -78,9 +78,9 @@ namespace StarterProject.Features.Identity
 
         public static void MapEndpoints(IEndpointRouteBuilder builder)
         {
-            builder.MapGet(ApiPath, async (HttpContext context, [AsParameters] Request request, [FromServices] IFeatureService featureService) =>
+            builder.MapGet(ApiPath, async (HttpContext context, [AsParameters] Request request) =>
             {
-                await context.RunFeature(featureService, request);
+                await context.RunFeature(request);
             }).RequireAuthorization(BuildPolicy)
                 .WithTags(OpenApiDocumentGroups.Identity);
         }
