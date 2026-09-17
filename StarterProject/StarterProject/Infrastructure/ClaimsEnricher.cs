@@ -123,7 +123,8 @@ namespace StarterProject.Infrastructure
 
             foreach (var claim in result.Claims)
             {
-                result.Identity!.AddClaim(claim);
+                if (!result.Identity!.HasClaim(claim.Type, claim.Value))
+                    result.Identity!.AddClaim(claim);
             }
 
             return newPrincipal ? new ClaimsPrincipal(result.Identity!) : principal;
