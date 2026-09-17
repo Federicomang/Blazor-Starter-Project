@@ -1,4 +1,4 @@
-# BlazorFeatures 1.4.0: guida architetturale per StarterProject e progetti add-on
+# BlazorFeatures 1.5.7: guida architetturale per StarterProject e progetti add-on
 
 > Documento operativo per agenti e sviluppatori. Prima di modificare o ampliare il sistema, leggere almeno le sezioni **Modello mentale**, **Render mode**, **Flusso di esecuzione**, **Creare una feature** e **Vincoli da non violare**.
 
@@ -14,11 +14,11 @@ Il documento descrive:
 - lo Starter locale `StarterProject`;
 - i pacchetti `BlazorFeatures.Abstractions`, `BlazorFeatures.Base.Client` e `BlazorFeatures.Base.Server`;
 - il sorgente pubblico [Federicomang/BlazorFeatures.Base](https://github.com/Federicomang/BlazorFeatures.Base);
-- il comportamento originario del repository pubblico sul branch `master`, revisione [`af063569`](https://github.com/Federicomang/BlazorFeatures.Base/tree/af063569e5738c5f2fbc28da3b682119767d5edf) del 2026-09-03, integrato con le evoluzioni locali destinate ai pacchetti **1.4.0**.
+- il sorgente pubblico fino alla revisione [`e03af9f`](https://github.com/Federicomang/BlazorFeatures.Base/tree/e03af9f013a929d979c25cd2938c3bf6e23ac7bd) del 2026-09-17, corrispondente alle API usate dai pacchetti **1.5.7**.
 
-Questa guida assume che i progetti host e gli add-on vengano allineati alla versione **1.4.0**. Le differenze di migrazione dalle versioni precedenti sono riepilogate nella sezione 5.3.
+Questa guida assume che i progetti host e gli add-on vengano allineati alla versione **1.5.7**. Le differenze di migrazione dalle versioni precedenti sono riepilogate nella sezione 5.3.
 
-> **Nota sulla versione:** la 1.4.0 include l'evoluzione descritta nelle sezioni 3, 5, 6, 7, 8 e 15: autorizzazione sulla feature concreta, `IHttpFeatureContext`, status HTTP in `FeatureResponse`, valori condivisi nel contesto, registry della discovery, pipeline server estendibile e diagnostica estensibile.
+> **Nota sulla versione:** la 1.5.7 include, oltre ad autorizzazione sulla feature concreta, `IHttpFeatureContext`, status HTTP, registry, pipeline e telemetria, il `FeatureCallerContext`, valori temporanei/permanenti con scope, isolamento DI di ogni invocazione, riuso esplicito dello scope, disposal differito, binding query/form aggiornato e primitive SSE uniformi.
 
 ## 2. Modello mentale
 
@@ -132,16 +132,22 @@ Usare `AsSuccess`, `AsFailure` o `Create`; non restituire `null`.
 
 ### `IFeatureContext`
 
-Rappresenta una singola operazione logica e contiene:
+Rappresenta una singola invocazione nella stessa operazione logica e contiene:
 
-- `OperationId`: identificatore condiviso utile per log e correlazione;
+- `NodeId`: identificatore univoco del nodo corrente;
+- `OperationId`: identificatore condiviso dall'intera catena, utile per log e correlazione;
 - `InvocationSource`: origine iniziale (`Client`, `Server`, `Http`, `Internal` o `BackgroundJob`);
-- `FeatureChain`: sequenza delle request attraversate;
-- `Values`: `Dictionary<string, object>` per dati contestuali in-process condivisi tra feature annidate.
+- `CallerContext`: snapshot immutabile dell'utente e dei valori catturati nel contesto chiamante;
+- `FeatureRequest`: request proprietaria del nodo corrente;
+- `FeatureChain`: registro concorrente dei nodi e della relazione padre/figlio;
+- `Values`: vista read-only risultante dalla sovrapposizione di valori temporanei e permanenti;
+- `TempValues`: valori inviati ai figli diretti; un figlio ne riceve uno snapshot e le proprie scritture non risalgono al padre;
+- `PermanentValues`: dizionario concorrente condiviso da tutta la catena;
+- `ScopeLifetime`, `UseSameServiceScope` e `DeferScopeDisposalUntil(...)`: controllo esplicito della durata dello scope DI.
 
-`FeatureService` aggiunge la request alla catena prima di autorizzazione, validazione ed esecuzione. Non inserire password, token o altri segreti in `Values`; usare chiavi qualificate per evitare collisioni tra add-on, ad esempio `"MyCompany.MyAddon.TenantId"`.
+`FeatureService` registra il nodo prima di autorizzazione, validazione ed esecuzione. Non inserire password, token o altri segreti nei valori del contesto; usare chiavi qualificate per evitare collisioni tra add-on, ad esempio `"MyCompany.MyAddon.TenantId"`.
 
-`Values` vive solo nella stessa esecuzione in-process: non viene serializzato né trasferito automaticamente dal contesto WASM al nuovo contesto HTTP server. Inoltre il dizionario non è thread-safe; una feature che avvia rami paralleli deve sincronizzarne l'accesso oppure evitare scritture concorrenti.
+I valori vivono solo nella stessa esecuzione in-process: non vengono serializzati né trasferiti automaticamente dal contesto WASM al nuovo contesto HTTP server. `PermanentValues` e `FeatureChain` supportano accessi concorrenti; gli oggetti memorizzati al loro interno devono comunque essere thread-safe se usati da rami paralleli. `TempValues` isola invece ogni ramo tramite snapshot.
 
 Quando una feature ne richiama un'altra e la catena deve rimanere unica, inoltrare esplicitamente il contesto:
 
@@ -149,9 +155,21 @@ Quando una feature ne richiama un'altra e la catena deve rimanere unica, inoltra
 var childResult = await featureService.Run(childRequest, featureContext, cancellationToken);
 ```
 
-Una chiamata `Run(childRequest)` senza `featureContext` crea una nuova catena. Attualmente la catena è tracciamento passivo: il framework non implementa automaticamente loop detection, transazioni o rollback.
+Una chiamata `Run(childRequest)` senza `featureContext` crea una nuova catena. La catena è tracciamento passivo: il framework non implementa automaticamente loop detection, transazioni o rollback.
 
 Nel percorso HTTP il contesto concreto è `IHttpFeatureContext`: espone l'`HttpContext` della request e permette alla feature radice di associare un `IResult` custom senza usare `HttpContext.Items`.
+
+### `FeatureCallerContext`
+
+Prima di creare lo scope della feature radice, `FeatureService` esegue in ordine tutti gli `IFeatureCallerContextEnricher` e costruisce uno snapshot immutabile. Il package registra automaticamente un enricher di autenticazione:
+
+- sul server preferisce `HttpContext.User` quando esiste una richiesta HTTP;
+- altrimenti usa `AuthenticationStateProvider`, quindi copre anche Interactive Server;
+- sul client usa `AuthenticationStateProvider` quando disponibile.
+
+Le feature e i behavior devono leggere il principal da `featureContext.CallerContext.User`. I figli che ricevono lo stesso `IFeatureContext` ereditano lo snapshot, evitando di dipendere da un `HttpContext` ambientale che può non esistere nel circuito Blazor.
+
+Lo Starter registra anche `FeatureContextEnricher`, che aggiunge `IJSRuntime` e `NavigationManager.BaseUri` ai valori del caller quando il runtime JavaScript è disponibile. Le estensioni in `FeatureCallerContextExtensions` espongono questi valori come proprietà tipizzate `JSRuntime` e `BaseUri`; `DoLogin` le usa per delegare al browser la richiesta che deve modificare il cookie. Un add-on deve comunque trattare questi valori come opzionali: durante prerendering, test o esecuzioni senza browser possono essere assenti.
 
 ## 4. `RenderType` e render mode Blazor sono concetti diversi
 
@@ -283,9 +301,9 @@ L'interfaccia generica ereditata è la stessa. Pertanto la risoluzione DI di
 - la classe client nel browser;
 - la classe server nel processo ASP.NET Core.
 
-### 5.2 Registrazione esplicita degli assembly in 1.4.0
+### 5.2 Registrazione esplicita degli assembly in 1.5.7
 
-La 1.4.0 consente di rendere deterministica la discovery senza dipendere dal fatto che il runtime abbia già caricato casualmente una DLL:
+La 1.5.7 consente di rendere deterministica la discovery senza dipendere dal fatto che il runtime abbia già caricato casualmente una DLL:
 
 ```csharp
 services.AddFeatures(config =>
@@ -335,16 +353,16 @@ builder.Services.AddSharedServices(config =>
 });
 ```
 
-### 5.3 Migrazione dello Starter dalle versioni precedenti alla 1.4.0
+### 5.3 Migrazione dello Starter alla 1.5.7
 
 Aggiornare insieme:
 
 ```xml
 <!-- StarterProject.Client.csproj -->
-<PackageReference Include="BlazorFeatures.Base.Client" Version="1.4.0" />
+<PackageReference Include="BlazorFeatures.Base.Client" Version="1.5.7" />
 
 <!-- StarterProject.csproj -->
-<PackageReference Include="BlazorFeatures.Base.Server" Version="1.4.0" />
+<PackageReference Include="BlazorFeatures.Base.Server" Version="1.5.7" />
 ```
 
 Differenze rilevanti rispetto alla 1.1.6:
@@ -362,14 +380,28 @@ Differenze rilevanti rispetto alla 1.1.6:
 - `IHttpFeatureContext` per i risultati HTTP personalizzati senza usare `HttpContext.Items`;
 - `FeatureResponse<T>.StatusCode` per trasportare lo status HTTP;
 - registry immutabile della discovery con validazione anticipata e risoluzione deterministica;
-- `ServerFeatureService` predefinito nel package con principal provider e behavior estendibili;
+- `ServerFeatureService` predefinito nel package con autorizzazione e behavior estendibili;
 - diagnostica estensibile tramite `ActivitySource`, `Meter` e logging strutturato.
+
+Differenze introdotte nelle versioni successive e presenti nella 1.5.7:
+
+- `FeatureCallerContext` immutabile con principal e valori catturati prima della creazione dello scope feature;
+- `IFeatureCallerContextEnricher` per aggiungere dati del chiamante senza service locator dentro la feature;
+- rimozione di `IFeaturePrincipalProvider`: autorizzazione e behavior usano `featureContext.CallerContext.User`;
+- uno scope DI asincrono distinto per ogni invocazione, incluse normalmente le feature annidate;
+- riuso opt-in dello scope tramite `UseSameServiceScope` e mantenimento esplicito tramite `DeferScopeDisposalUntil`;
+- `FeatureChain` concorrente a nodi con `NodeId` e relazione padre/figlio;
+- separazione tra `TempValues` e `PermanentValues`;
+- `RunFeatureConfig` per sostituire `IFeatureService` o `JsonSerializerOptions` in una singola esecuzione HTTP;
+- `HttpTools.ToQueryString` e `ToMultipartFormDataContent`, con type hint e file multipart;
+- callback SSE uniforme basata su `SseEvent` e opzione `DeserializeOnlyLastForResponse`.
+- converter JSON per `ObjectValue<T>` e `AsyncObjectValue<T>`; lo stato di sincronizzazione e gli handler `ValueChanged` non attraversano il confine di serializzazione.
 
 Il comportamento base di dispatch client/server, il modello di ereditarietà e `UseFeatureEndpoints` rimangono invariati.
 
-### 5.4 Feature generiche in 1.4.0
+### 5.4 Feature generiche in 1.5.7
 
-La 1.4.0 include `FeatureTypeResolver` per le implementazioni open-generic. La risoluzione segue questo ordine:
+La 1.5.7 include `FeatureTypeResolver` per le implementazioni open-generic. La risoluzione segue questo ordine:
 
 1. prova a risolvere direttamente `IBaseFeature<TRequest,TResponse>` da DI;
 2. se non esiste una registrazione chiusa, cerca tra le classi feature generiche scoperte;
@@ -380,9 +412,9 @@ La 1.4.0 include `FeatureTypeResolver` per le implementazioni open-generic. La r
 
 Se non trova alcuna corrispondenza genera `InvalidOperationException`; fa lo stesso se più feature generiche corrispondono. Evitare template sovrapposti o ambigui e aggiungere test di risoluzione per ogni coppia concreta.
 
-### 5.5 Registro e validazione della discovery nell'evoluzione locale
+### 5.5 Registro e validazione della discovery
 
-La 1.4.0 costruisce durante `AddFeatures` un registro immutabile, disponibile da DI tramite `IFeatureRegistry` e tramite il compatibile `FeatureSystemContainerService`.
+La 1.5.7 costruisce durante `AddFeatures` un registro immutabile, disponibile da DI tramite `IFeatureRegistry` e tramite il compatibile `FeatureSystemContainerService`.
 
 Il registro espone:
 
@@ -414,6 +446,7 @@ La reflection sui tipi viene eseguita una volta sola. Endpoint e integrazioni Db
 ```text
 Componente WASM
   -> IFeatureService.Run(request)
+  -> cattura FeatureCallerContext e crea uno scope DI della feature
   -> risoluzione della feature Client
   -> HandleClient(request)
   -> HttpClient GET/POST /api/...
@@ -433,6 +466,7 @@ Componente WASM
 ```text
 Componente nel circuito Blazor Server
   -> IFeatureService.Run(request)
+  -> cattura FeatureCallerContext e crea uno scope DI della feature
   -> risoluzione della feature Server
   -> ServerFeatureService
   -> HandleServer(request) direttamente in-process
@@ -441,7 +475,29 @@ Componente nel circuito Blazor Server
 
 Non c'è un round-trip HTTP per la normale business logic. Questo è il motivo principale per cui esistono entrambi gli handler.
 
-### 6.3 Eccezioni che richiedono comunque il browser
+### 6.3 Scope DI per invocazione
+
+`IFeatureService` è scoped, ma ogni `Run` crea normalmente un nuovo `AsyncServiceScope` e risolve al suo interno feature, behavior e dipendenze. Anche due figli annidati ricevono scope distinti: questo isola servizi scoped non thread-safe, come un `DbContext`, quando i rami vengono eseguiti in parallelo.
+
+Se un figlio deve partecipare alla stessa unit of work del padre, il padre può abilitare il riuso prima della chiamata:
+
+```csharp
+featureContext.UseSameServiceScope = true;
+var result = await featureService.Run(childRequest, featureContext, cancellationToken);
+```
+
+Il flag viene disabilitato sul contesto figlio e va quindi scelto esplicitamente a ogni livello. Non usarlo per figli paralleli salvo che tutte le dipendenze scoped coinvolte supportino accessi concorrenti.
+
+Se un'operazione avviata dalla feature deve continuare a usare servizi scoped dopo il ritorno dell'handler, registrarla prima del ritorno:
+
+```csharp
+var delivery = publisher.FlushAsync(cancellationToken);
+featureContext.DeferScopeDisposalUntil(delivery);
+```
+
+Il framework mantiene lo scope fino al completamento delle operazioni registrate e ne osserva gli errori. Non usare questo meccanismo come sostituto di una coda o di un `BackgroundService` per lavoro durevole.
+
+### 6.4 Eccezioni che richiedono comunque il browser
 
 Alcune operazioni devono modificare cookie o seguire semantiche del browser. `DoLogin` è l'esempio dello Starter: durante una chiamata Interactive Server, il server usa `IJSRuntime` e `window.doRequest` per far eseguire al browser una vera `fetch` verso l'endpoint di login.
 
@@ -454,7 +510,7 @@ Non generalizzare questo workaround a tutte le feature. Usarlo solo quando la ri
 Il servizio del pacchetto centralizza:
 
 - riconoscimento del percorso HTTP tramite `IHttpFeatureContext`;
-- risoluzione del principal tramite `IFeaturePrincipalProvider`;
+- utilizzo del principal catturato in `FeatureCallerContext`;
 - autorizzazione obbligatoria della **feature concreta**;
 - esecuzione ordinata degli `IServerFeatureBehavior` registrati;
 - invocazione finale di `HandleServer`;
@@ -464,7 +520,7 @@ Il servizio del pacchetto centralizza:
 L'ordine non è sostituibile:
 
 ```text
-risoluzione principal
+ principal da CallerContext
   -> IBaseFeatureAuthorization
   -> behavior server ordinati
   -> HandleServer
@@ -474,22 +530,11 @@ L'autorizzazione base non è un behavior: un add-on può aggiungere restrizioni,
 
 ### 7.1 Risoluzione del principal
 
-Il provider predefinito usa, nell'ordine appropriato al contesto:
+La 1.5.7 non usa più `IFeaturePrincipalProvider`. Il principal viene catturato prima di creare lo scope della feature e rimane disponibile in `featureContext.CallerContext.User`. `ServerFeatureService` usa lo stesso snapshot per autorizzazione e behavior, evitando divergenze tra chiamate HTTP, Interactive Server e feature annidate.
 
-- `IHttpFeatureContext.HttpContext.User` per una richiesta Feature HTTP;
-- `AuthenticationStateProvider` quando disponibile per Interactive Server;
-- `IHttpContextAccessor.HttpContext.User` come fallback;
-- un principal anonimo se nessuna sorgente è disponibile.
+Lo Starter lascia attivo l'enricher di autenticazione del package. `CustomAuthenticationMiddleware`, eseguito dopo `UseAuthentication`, usa invece `ClaimsEnricher` per completare i claim di ruolo delle richieste HTTP e per caricare negli `HttpContext.Items` l'entità `User` o `OpenIddictApplication` usata da feature e audit. Gli item sono cache request-scoped dello Starter e non fanno parte di BlazorFeatures; non vanno copiati in `IFeatureContext.Values`.
 
-Lo Starter sostituisce il provider predefinito con `StarterFeaturePrincipalProvider`, che continua a usare `CustomAuthStateProvider.ForceRefreshAsync()` nelle chiamate in-process e usa direttamente l'utente dell'`IHttpFeatureContext` nelle chiamate HTTP:
-
-```csharp
-builder.Services.AddScoped<
-    IFeaturePrincipalProvider,
-    StarterFeaturePrincipalProvider>();
-```
-
-Registrare il provider personalizzato prima di `AddFeatures`/`AddSharedServices`, così la registrazione `TryAdd` del package non aggiunge il provider predefinito.
+Nel circuito Interactive Server, `CustomAuthStateProvider` rivalida periodicamente il principal e l'enricher del package lo cattura tramite `AuthenticationStateProvider`. Quando si aggiorna un claim concettualmente singolo, rimuovere prima gli eventuali valori precedenti oppure usare una semantica equivalente a `SetClaim`; `HasClaim(type, value)` evita duplicati identici ma non sostituisce un valore diverso.
 
 ### 7.2 Autorizzazione indipendente dal trasporto
 
@@ -545,7 +590,7 @@ public sealed class LicenseBehavior(ILicenseService licenses)
 
 Solo le Feature server che implementano `IRequiresActiveLicense` attivano il controllo. Lo stesso modello può supportare tenant, feature flag, auditing, idempotenza, transazioni o rate limiting.
 
-`ServerFeatureExecutionContext<TResponse>` espone Feature concreta, request, tipi request/response, `IFeatureContext`, `HttpContext` opzionale e `GetPrincipalAsync()`. Il principal viene risolto solo quando l'autorizzazione o un behavior lo richiede e viene memorizzato per la singola esecuzione. Il contesto non espone un `IServiceProvider`.
+`ServerFeatureExecutionContext<TResponse>` espone Feature concreta, request, tipi request/response, `IFeatureContext`, `HttpContext` opzionale e `GetPrincipalAsync()`. Il metodo restituisce il principal catturato nel `CallerContext` per la singola esecuzione. Lo snapshot non viene sostituito durante la catena, ma il `ClaimsPrincipal` resta un oggetto mutabile: trattarlo come read-only. Il contesto non espone un `IServiceProvider`.
 
 ### 7.4 FluentValidation nello Starter
 
@@ -658,12 +703,9 @@ public sealed class GetWidget(
     {
         endpoints.MapGet("/api/widgets/{id:guid}", async (
             HttpContext context,
-            Guid id,
-            [FromServices] IFeatureService featureService) =>
+            Guid id) =>
         {
-            await context.RunFeature(
-                featureService,
-                new Request { Id = id });
+            await context.RunFeature(new Request { Id = id });
         });
     }
 }
@@ -678,11 +720,23 @@ Per operazioni come login, logout, challenge, redirect, download o streaming, il
 ```csharp
 if (featureContext is IHttpFeatureContext httpContext)
 {
-    httpContext.SetHttpResult(request, Results.SignIn(principal));
+    httpContext.SetHttpResult(Results.SignIn(principal));
 }
 ```
 
 L'`IResult` custom ha precedenza solo per la request proprietaria. Questo evita che una feature annidata sovrascriva accidentalmente la risposta HTTP della feature radice. Fuori da HTTP la feature deve comunque restituire un `FeatureResponse<T>` valido. Nessuno di questi dati tecnici viene conservato in `HttpContext.Items`.
+
+`RunFeature` risolve normalmente `IFeatureService` e le `JsonSerializerOptions` dai servizi della request. Per override limitati al singolo endpoint è disponibile il configuratore:
+
+```csharp
+await context.RunFeature(request, config =>
+{
+    config.FeatureService = customFeatureService;
+    config.JsonSerializerOptions = customJsonOptions;
+});
+```
+
+`config.FeatureContext` espone inoltre il contesto HTTP appena creato. Evitare configurazioni globali mutate dall'endpoint quando basta questo override locale.
 
 ## 9. Endpoint e API generate da un add-on
 
@@ -780,7 +834,7 @@ Lo Starter attuale non effettua questa chiamata nel proprio `ApplicationDbContex
 
 Una classe di opzioni può implementare `IFeatureOptions<TFeature>`. `AddFeatures` ne crea un'istanza e applica l'eventuale `OptionsConfigurator` globale. Usare questo meccanismo per configurazione statica di feature; usare il normale options pattern dell'host quando servono binding da `IConfiguration`, validazione complessa o secret.
 
-### 10.7 Paginazione e ordinamento query in 1.4.0
+### 10.7 Paginazione e ordinamento query in 1.5.7
 
 `BlazorFeatures.Base.Server` fornisce:
 
@@ -799,6 +853,14 @@ Le option di filtro consentono:
 - espressioni di ordinamento custom fortemente tipizzate con `OrderExpression<T,TKey>`.
 
 Poiché l'ordinamento non custom usa `System.Linq.Dynamic.Core`, non passare liberamente stringhe non validate provenienti da client esterni: adottare una allowlist di campi o `CustomEntityOrdering`/`CustomModelOrdering`.
+
+### 10.8 Query string, form e multipart
+
+`HttpTools.ToQueryString(model, jsonOptions, typeHints)` serializza proprietà pubbliche, collezioni ripetendo la chiave e dati aggiuntivi esposti tramite `JsonExtensionData`/`IWithUnmanagedData`. Usa conversioni invariant per i tipi semplici e JSON per gli oggetti complessi. `ToUrlEncodedString` non è più l'API corrente.
+
+Per upload usare `HttpTools.ToMultipartFormDataContent(...)`. Accetta valori normali, `Stream` e `MultipartFileData`; quest'ultimo consente nome file, apertura differita dello stream e header. Disporre sempre il `MultipartFormDataContent` dopo l'invio. Le chiavi `$type:<nome>` trasportano type hint solo quando il server deve ricostruire dati non gestiti staticamente; non accettare tipi arbitrari non autorizzati dal client.
+
+Sul server `QueryBound<T>` e `FormBound<T>` applicano il binding coerente con questi formati e usano le `JsonSerializerOptions` dell'applicazione. Preferire comunque il binding tipizzato standard quando il contratto è noto interamente a compile time.
 
 ## 11. Progettare eventi cross-render-mode
 
@@ -846,13 +908,13 @@ Non considerarlo ancora un trasporto cross-render-mode completo:
 
 Per un nuovo progetto di eventi, riusare il pattern feature e l'interfaccia pubblica, non assumere che l'implementazione Starter sia pronta per produzione.
 
-### Supporto SSE della 1.4.0
+### Supporto SSE della 1.5.7
 
-La 1.4.0 espone `HttpClientExtensions.SSE<T>`. Il metodo:
+La 1.5.7 espone `HttpClientExtensions.SSE<T>`. Il metodo:
 
 1. invia un `HttpRequestMessage` con `ResponseHeadersRead`;
 2. se lo status non è di successo o il media type non è `text/event-stream`, converte la risposta HTTP in `FeatureResponse<T>`;
-3. legge gli eventi SSE e invoca `ISseRequest.OnEventSse(...)` per ciascuno;
+3. legge gli eventi SSE e invoca `ISseRequest.OnEventSse(SseEvent, ...)` per ciascuno, indipendentemente dal target framework;
 4. cerca un evento finale il cui tipo predefinito è `feature_response`;
 5. deserializza quell'evento come `FeatureResponse<T>`;
 6. restituisce failure se lo stream termina senza l'evento finale.
@@ -860,10 +922,11 @@ La 1.4.0 espone `HttpClientExtensions.SSE<T>`. Il metodo:
 `SseOptions<T>` permette di configurare:
 
 - `ResponseEventKeyword`;
+- `DeserializeOnlyLastForResponse`, `true` per default, per scegliere se deserializzare come risposta solo l'ultimo evento corrispondente;
 - `JsonSerializerOptions`;
 - `ResponseCustomDeserialize`.
 
-Questo è un parser/adapter client, non un event bus completo: l'add-on deve ancora implementare endpoint SSE server, autenticazione, heartbeat, replay/reconnect e registry dei destinatari. Su .NET 10 usa `System.Net.ServerSentEvents.SseParser`; per target precedenti include un parser compatibile interno.
+`SseEvent` espone in modo uniforme `Id`, `EventType`, `Data` e `RetryMilliseconds`; su .NET 10 conserva anche l'`OriginalItem`. Questo è un parser/adapter client, non un event bus completo: l'add-on deve ancora implementare endpoint SSE server, autenticazione, heartbeat, replay/reconnect e registry dei destinatari. Su .NET 10 usa `System.Net.ServerSentEvents.SseParser`; per target precedenti include un parser compatibile interno.
 
 ## 12. Struttura consigliata di un add-on
 
@@ -920,7 +983,7 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 - referenziare `MyAddon.Server` e, transitivamente o direttamente, `MyAddon.Client`;
 - includere esplicitamente gli assembly client e server con `AddAssemblyContaining<T>()`;
 - registrare dipendenze server, DbContext e option;
-- registrare eventuali `IFeaturePrincipalProvider` e `IServerFeatureBehavior` specifici dell'host; il package registra già `IServerFeatureService`;
+- registrare eventuali `IFeatureCallerContextEnricher` e `IServerFeatureBehavior` specifici dell'host; il package registra già l'enricher di autenticazione e `IServerFeatureService`;
 - chiamare `app.UseFeatureEndpoints()` dopo routing/auth secondo la pipeline desiderata;
 - abilitare entrambi i render mode se l'add-on li usa;
 - aggiungere le assembly UI a `MapRazorComponents(...).AddAdditionalAssemblies(...)` quando necessario;
@@ -932,7 +995,7 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 2. La classe server deve ereditare la classe client o implementare esattamente la stessa `IBaseFeature<TRequest,TResponse>`.
 3. `HandleServer` nel client deve essere `virtual` se il server lo sovrascrive.
 4. L'assembly deve avere `[FeatureAssembly(RenderType.Client|Server|Both)]`.
-5. Includere esplicitamente l'assembly nella configurazione 1.4.0 di `AddFeatures`.
+5. Includere esplicitamente l'assembly nella configurazione 1.5.7 di `AddFeatures`.
 6. Non mettere codice o dipendenze server-only nell'assembly client.
 7. Non confondere `RenderType.Both` con `InteractiveAuto`.
 8. Implementare `IBaseFeatureAuthorization` sulla classe feature server e replicare la policy sull'endpoint HTTP.
@@ -942,7 +1005,9 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 12. Non usare il solo controllo UI/client come misura di sicurezza.
 13. Allineare le versioni dei tre pacchetti BlazorFeatures tra host e add-on.
 14. Riutilizzare lo stesso `IFeatureContext` e `CancellationToken` nelle feature annidate.
-15. Non salvare segreti in `IFeatureContext.Values` e non serializzare request complete nei log.
+15. Non salvare segreti in `CallerContext.Values`, `TempValues` o `PermanentValues` e non serializzare request complete nei log.
+16. Assumere che ogni `Run` abbia uno scope DI distinto; abilitare `UseSameServiceScope` solo quando il figlio deve condividere intenzionalmente la stessa unit of work.
+17. Registrare con `DeferScopeDisposalUntil` ogni operazione che continua a usare dipendenze scoped dopo il ritorno dell'handler.
 
 ## 15. Diagnostica e add-on di osservabilita
 
@@ -956,7 +1021,7 @@ Non aggiungere riferimenti server, EF Core provider, secret o implementazioni pr
 
 I nomi pubblici di source, meter, strumenti e tag sono contratti di integrazione: un add-on deve usarli senza accedere ai dettagli interni di `FeatureService`.
 
-La telemetria non include automaticamente request, response o `IFeatureContext.Values`. Messaggio e stack trace delle eccezioni sono esclusi dalle activity e dai log per impostazione predefinita. L'applicazione puo configurare il comportamento senza installare OpenTelemetry:
+La telemetria non include automaticamente request, response, `CallerContext.Values`, `TempValues` o `PermanentValues`. Messaggio e stack trace delle eccezioni sono esclusi dalle activity e dai log per impostazione predefinita. L'applicazione può configurare il comportamento senza installare OpenTelemetry:
 
 ```csharp
 builder.Services.Configure<FeatureTelemetryOptions>(options =>
@@ -989,7 +1054,8 @@ Per ogni feature/add-on verificare almeno:
 - **server unit test**: `HandleServer` applica business logic, cancellation e mapping degli errori;
 - **integration test HTTP**: endpoint, binding, validation, authorization, status code e schema risposta;
 - **Interactive Server test**: la chiamata diretta non aggira authorization o assunzioni legate all'endpoint;
-- **server pipeline test**: autorizzazione base, ordine dei behavior, short-circuit, principal lazy, eccezioni e cancellazione;
+- **server pipeline test**: cattura del caller, autorizzazione base, ordine dei behavior, short-circuit, eccezioni e cancellazione;
+- **scope test**: isolamento delle invocazioni parallele, riuso opt-in dello scope nei figli e disposal dopo le operazioni differite;
 - **WASM/end-to-end test**: la stessa request attraversa client -> HTTP -> server;
 - **render test**: prerender e fase interattiva non duplicano provider/subscription;
 - **discovery test**: l'assembly add-on compare nel `FeatureSystemContainerService` corretto;
@@ -997,7 +1063,7 @@ Per ogni feature/add-on verificare almeno:
 
 ## 17. Procedura per un agente che crea un nuovo add-on
 
-1. Verificare che host e add-on usino tutti BlazorFeatures 1.4.0.
+1. Verificare che host e add-on usino tutti BlazorFeatures 1.5.7.
 2. Identificare i runtime supportati e i render mode dei componenti consumatori.
 3. Creare la coppia `Addon.Client`/`Addon.Server` e i relativi `AssemblyInfo.cs`.
 4. Definire nel client il contratto serializzabile `Request/Response` e il path API.
@@ -1018,7 +1084,8 @@ Per ogni feature/add-on verificare almeno:
 - selezione render mode globale: `StarterProject/Web/App.razor`;
 - assembly aggiuntivi del router: `StarterProject.Client/Routes.razor`;
 - layout multi-renderer: `StarterProject.Client/Layout/MainLayout/`;
-- provider principal dello Starter: `StarterProject/Infrastructure/StarterFeaturePrincipalProvider.cs`;
+- cattura dati del chiamante: `StarterProject/Infrastructure/FeatureContextEnricher.cs` e `StarterProject/Extensions/FeatureCallerContextExtensions.cs`;
+- arricchimento claim e dati request-scoped: `StarterProject/Infrastructure/ClaimsEnricher.cs` e `StarterProject/Extensions/HttpContextExtensions.cs`;
 - validazione server estendibile: `StarterProject/Features/FluentValidationFeatureBehavior.cs`;
 - esempio GET: `StarterProject.Client/Features/Identity/GetUsers.cs` e `StarterProject/Features/Identity/GetUsers.cs`;
 - esempio login browser-mediated: coppia `Features/Identity/DoLogin.cs`;
@@ -1037,4 +1104,4 @@ stesso Request/Response
         +-- runtime server -> HandleServer diretto
 ```
 
-La separazione Client/Server protegge il confine browser-server e consente alla stessa UI di funzionare in render mode differenti. Gli add-on devono preservare questo confine, rendere esplicita la discovery degli assembly, duplicare correttamente i controlli di sicurezza sui due percorsi e trattare endpoint, UI globale, policy, database ed eventi come capacità opzionali costruite attorno alla feature, non come eccezioni al modello.
+La separazione Client/Server protegge il confine browser-server e consente alla stessa UI di funzionare in render mode differenti. La 1.5.7 aggiunge un secondo confine altrettanto importante: ogni invocazione cattura il proprio caller e possiede normalmente il proprio scope DI, mentre contesto logico, valori permanenti e telemetria possono continuare lungo la catena. Gli add-on devono preservare entrambi i confini, rendere esplicita la discovery degli assembly, duplicare correttamente i controlli di sicurezza sui due percorsi e trattare endpoint, UI globale, policy, database ed eventi come capacità opzionali costruite attorno alla feature, non come eccezioni al modello.
