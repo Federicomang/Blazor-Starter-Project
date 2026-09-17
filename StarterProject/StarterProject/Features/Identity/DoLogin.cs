@@ -5,13 +5,11 @@ using BlazorFeatures.Base.Server.Extensions;
 using BlazorFeatures.Base.Server.Tools;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.JSInterop;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using StarterProject.Database.Entities;
+using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using StarterProject.Tools;
 using System.Security.Claims;
@@ -26,16 +24,15 @@ namespace StarterProject.Features.Identity
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         IOpenIddictApplicationManager applicationManager,
-        ILogger<DoLogin> logger,
-        IJSRuntime jsRuntime,
-        NavigationManager navigationManager
+        ILogger<DoLogin> logger
     ) : ClientDoLogin(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request featureRequest, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             if (featureContext is not IHttpFeatureContext httpFeatureContext)
             {
-                var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
+                var callerContext = featureContext.CallerContext;
+                var jsResponse = await callerContext.JSRuntime!.DoRequest(callerContext.BaseUri!.TrimEnd('/') + ApiPath, new
                 {
                     method = "POST",
                     headers = new Dictionary<string, string> {
@@ -53,7 +50,7 @@ namespace StarterProject.Features.Identity
                 else if(!string.IsNullOrEmpty(jsResponse.Result))
                 {
                     var errorRes = JsonSerializer.Deserialize<ErrorResponse>(jsResponse.Result);
-                    return FeatureResponse<Response>.Create(false, null, errorRes?.Error == null ? [] : [errorRes.Error]);
+                    return FeatureResponse<Response>.Create(false, null, errorRes?.ErrorDescription == null ? [] : [errorRes.ErrorDescription]);
                 }
                 else
                 {
@@ -63,7 +60,7 @@ namespace StarterProject.Features.Identity
             else if(httpFeatureContext.HttpContext.Request.Method == "POST")
             {
                 var response = await ManageLogin(httpFeatureContext.HttpContext, featureContext.OperationId);
-                httpFeatureContext.SetHttpResult(featureRequest, response.Data!);
+                httpFeatureContext.SetHttpResult(response.Data!);
                 return FeatureResponse<Response>.Create(
                     response.Success,
                     new Response(),
@@ -71,7 +68,7 @@ namespace StarterProject.Features.Identity
                     statusCode: response.StatusCode); // La risposta HTTP effettiva è l'IResult custom.
             }
 
-            httpFeatureContext.SetHttpResult(featureRequest, Results.BadRequest());
+            httpFeatureContext.SetHttpResult(Results.BadRequest());
             return FeatureResponse<Response>.AsFailure(statusCode: System.Net.HttpStatusCode.BadRequest);
         }
 
@@ -90,14 +87,25 @@ namespace StarterProject.Features.Identity
             {
                 if (request == null)
                 {
-                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid request" }), ["Invalid request"], statusCode: System.Net.HttpStatusCode.BadRequest);
+                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = Errors.RequestNotSupported, ErrorDescription = "Invalid request" }), ["Invalid request"], statusCode: System.Net.HttpStatusCode.BadRequest);
                 }
 
                 if (request.GrantType == GrantTypes.Password)
                 {
                     var user = await GetUser(request.Username!);
                     if (user == null || !await userManager.CheckPasswordAsync(user, request.Password!))
-                        return FeatureResponse<IResult>.AsFailure(Results.Forbid(authenticationSchemes: [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]), ["Credentials not correct"], statusCode: System.Net.HttpStatusCode.Forbidden);
+                    {
+                        var properties = new AuthenticationProperties(
+                            new Dictionary<string, string?>
+                            {
+                                [OpenIddictServerAspNetCoreConstants.Properties.Error] =
+                                    Errors.AccessDenied,
+
+                                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                                    "Credentials not correct"
+                            });
+                        return FeatureResponse<IResult>.AsFailure(Results.Forbid(properties, [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]), ["Credentials not correct"], statusCode: System.Net.HttpStatusCode.Forbidden);
+                    }
 
                     principal = await signInManager.CreateUserPrincipalAsync(user);
 
@@ -111,7 +119,7 @@ namespace StarterProject.Features.Identity
                     // Rilegge e valida il refresh token ricevuto
                     var result = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                     if (result is null || result.Principal is null)
-                        return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Invalid refresh token" }), ["Invalid refresh token"], statusCode: System.Net.HttpStatusCode.BadRequest);
+                        return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = Errors.InvalidToken, ErrorDescription = "Invalid refresh token" }), ["Invalid refresh token"], statusCode: System.Net.HttpStatusCode.BadRequest);
 
                     principal = result.Principal;
 
@@ -159,7 +167,7 @@ namespace StarterProject.Features.Identity
 
                 if (principal == null)
                 {
-                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = "Unsupported grant type" }), ["Unsupported grant type"], statusCode: System.Net.HttpStatusCode.BadRequest);
+                    return FeatureResponse<IResult>.AsFailure(Results.BadRequest(new ErrorResponse { Error = Errors.UnsupportedGrantType, ErrorDescription = "Unsupported grant type" }), ["Unsupported grant type"], statusCode: System.Net.HttpStatusCode.BadRequest);
                 }
                 else
                 {
@@ -187,7 +195,7 @@ namespace StarterProject.Features.Identity
                     request?.GrantType,
                     request?.ClientId,
                     operationId);
-                return FeatureResponse<IResult>.AsFailure(Results.InternalServerError(new ErrorResponse { Error = "Internal server error" }), ["Internal server error"]);
+                return FeatureResponse<IResult>.AsFailure(Results.InternalServerError(new ErrorResponse { Error = Errors.ServerError, ErrorDescription = "Internal server error" }), ["Internal server error"]);
             }
         }
 

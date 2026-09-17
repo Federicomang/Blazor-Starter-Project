@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NLog.Web;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
@@ -251,11 +252,11 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddScoped<IFeaturePrincipalProvider, StarterFeaturePrincipalProvider>();
 builder.Services.AddServerFeatureBehavior<FluentValidationFeatureBehavior>();
 builder.Services.AddSharedServices(features =>
     features.AddAssemblies(clientAssembly, thisAssembly));
 
+builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IFeatureCallerContextEnricher, FeatureContextEnricher>());
 builder.Services.AddScoped<ClaimsEnricher>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(x => x.GetRequiredService<CustomAuthStateProvider>());

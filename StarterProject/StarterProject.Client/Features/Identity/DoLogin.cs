@@ -70,6 +70,9 @@ namespace StarterProject.Client.Features.Identity
         {
             [JsonPropertyName("error")]
             public string? Error { get; set; }
+
+            [JsonPropertyName("error_description")]
+            public string? ErrorDescription { get; set; }
         }
 
         private readonly HttpClient HttpClient = serviceProvider.GetRequiredService<HttpClient>();
@@ -88,8 +91,8 @@ namespace StarterProject.Client.Features.Identity
 
         public async Task<FeatureResponse<Response>> HandleClient(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
-            var content = new StringContent(HttpTools.ToQueryString(request), Encoding.UTF8, "application/x-www-form-urlencoded");
-            var response = await HttpClient!.PostAsync(ApiPath, content, cancellationToken);
+            var reqContent = new StringContent(HttpTools.ToQueryString(request), Encoding.UTF8, "application/x-www-form-urlencoded");
+            var response = await HttpClient!.PostAsync(ApiPath, reqContent, cancellationToken);
             return await response.AsFeatureResponse(content =>
             {
                 FeatureResponse<Response> result;
@@ -103,14 +106,14 @@ namespace StarterProject.Client.Features.Identity
                 else if (!string.IsNullOrEmpty(content))
                 {
                     var errorRes = JsonSerializer.Deserialize<ErrorResponse>(content, JsonOptions);
-                    result = FeatureResponse<Response>.Create(false, null, errorRes?.Error == null ? [] : [errorRes.Error]);
+                    result = FeatureResponse<Response>.Create(false, null, errorRes?.ErrorDescription == null ? [] : [errorRes.ErrorDescription]);
                 }
                 else
                 {
                     result = FeatureResponse<Response>.Create(false, null);
                 }
                 return Task.FromResult(result);
-            });
+            }, cancellationToken);
         }
 
         public virtual Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)

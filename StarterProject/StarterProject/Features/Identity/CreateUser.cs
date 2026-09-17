@@ -42,6 +42,7 @@ namespace StarterProject.Features.Identity
                 var responseData = new Response() { Id = user.Id };
                 if(request.UserInfo.Roles.Any())
                 {
+                    featureContext.UseSameServiceScope = true;
                     var res = await featureService.Run(new AssignRoles.Request()
                     {
                         User = user,

@@ -3,24 +3,23 @@ using BlazorFeatures.Base.Server;
 using BlazorFeatures.Base.Server.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.JSInterop;
 using OpenIddict.Server.AspNetCore;
+using StarterProject.Extensions;
 using StarterProject.OpenApi;
 using ClientLogout = StarterProject.Client.Features.Identity.Logout;
 using Response = BlazorFeatures.Base.FeatureService.EmptyResponse;
 
 namespace StarterProject.Features.Identity
 {
-    public class Logout(IServiceProvider sp, IJSRuntime jsRuntime, NavigationManager navigationManager) : ClientLogout(sp), IBaseFeatureEndpoint
+    public class Logout(IServiceProvider sp) : ClientLogout(sp), IBaseFeatureEndpoint
     {
         public override async Task<FeatureResponse<Response>> HandleServer(Request request, IFeatureContext featureContext, CancellationToken cancellationToken = default)
         {
             if(featureContext is not IHttpFeatureContext httpFeatureContext)
             {
-                var jsResponse = await jsRuntime.DoRequest(navigationManager.BaseUri.TrimEnd('/') + ApiPath, new
+                var callerContext = featureContext.CallerContext;
+                var jsResponse = await callerContext.JSRuntime!.DoRequest(callerContext.BaseUri!.TrimEnd('/') + ApiPath, new
                 {
                     method = "POST",
                     headers = new Dictionary<string, string> {
