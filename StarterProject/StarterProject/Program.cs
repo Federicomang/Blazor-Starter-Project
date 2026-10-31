@@ -1,6 +1,7 @@
 ﻿using BlazorFeatures.Abstractions;
 using BlazorFeatures.Base.Server;
 using BlazorFeatures.Base.Server.Extensions;
+using Duende.AccessTokenManagement;
 using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -28,6 +29,7 @@ using StarterProject.Infrastructure.Hangfire;
 using StarterProject.Infrastructure.Localization;
 using StarterProject.Middlewares;
 using StarterProject.OpenApi;
+using StarterProject.Options;
 using StarterProject.Tools;
 using StarterProject.Web;
 using System.Reflection;
@@ -142,6 +144,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var oidConfiguration = builder.Configuration.GetSection("OpenIddictConfiguration").Get<AppOpenIddictConfiguration>();
+
 // 2️⃣ Configura OpenIddict
 builder.Services.AddOpenIddict()
     .AddCore(opt =>
@@ -189,35 +193,27 @@ builder.Services.AddOpenIddict()
         // === CLIENT RISERVATI ===
         opt.AcceptAnonymousClients(); // mantieni se hai SPA native
 
-        // === CERTIFICATI ===
-        if (builder.Environment.IsDevelopment())
+        var isSecure = false;
+
+        if (builder.Environment.IsDevelopment() || oidConfiguration == null)
         {
             opt.AddDevelopmentEncryptionCertificate();
             opt.AddDevelopmentSigningCertificate();
         }
         else
         {
-            var certPath = builder.Configuration["OpenIddictConfiguration:CertificatePath"];
-            var signCertificate = builder.Configuration["OpenIddictConfiguration:SigningCertificate"]!;
-            var encryptCertificate = builder.Configuration["OpenIddictConfiguration:EncryptionCertificate"]!;
-            if (string.IsNullOrEmpty(certPath))
-            {
-                opt.AddEncryptionCertificate(encryptCertificate);
-                opt.AddSigningCertificate(signCertificate);
-            }
-            else
-            {
-                opt.AddEncryptionCertificate(CertificateTools.FindCertificate(certPath, encryptCertificate));
-                opt.AddSigningCertificate(CertificateTools.FindCertificate(certPath, signCertificate));
-            }
+            isSecure = oidConfiguration.IsSecure;
+            oidConfiguration.Configure(opt);
         }
 
-        // === INTEGRAZIONE ASP.NET CORE ===
-        opt.UseAspNetCore()
-            .DisableTransportSecurityRequirement()
+        var aspBuilder = opt.UseAspNetCore()
             .EnableTokenEndpointPassthrough()
             .EnableAuthorizationEndpointPassthrough()
             .EnableEndSessionEndpointPassthrough();
+        if (!isSecure)
+        {
+            aspBuilder.DisableTransportSecurityRequirement();
+        }
     })
     .AddValidation(opt =>
     {
@@ -292,6 +288,52 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")).AddInterceptors(sp.GetServices<IInterceptor>());
     options.UseOpenIddict<OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken, string>();
 });
+
+builder.Services.AddHttpClient();
+
+var externalServices = builder.Configuration.GetSection("ExternalServices").GetChildren().ToList();
+if (externalServices.Count > 0)
+{
+    var clientCredentialsBuilder = builder.Services.AddClientCredentialsTokenManagement();
+
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.AddHttpClient(ClientCredentialsTokenManagementDefaults.BackChannelHttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+    }
+
+    foreach (var oauthService in externalServices)
+    {
+        var settings = oauthService.Get<AppOAuth2Options>()!;
+        clientCredentialsBuilder = clientCredentialsBuilder.AddClient(oauthService.Key, client =>
+        {
+            client.TokenEndpoint = new Uri(settings.TokenEndpoint);
+            client.ClientId = ClientId.Parse(settings.ClientId);
+            client.ClientSecret = ClientSecret.Parse(settings.ClientSecret);
+            client.Scope = Scope.Parse(settings.Scope);
+        });
+        var httpClientBuilder = builder.Services.AddHttpClient(oauthService.Key, client =>
+        {
+            client.BaseAddress = new Uri(settings.BaseAddress);
+        });
+
+        if (builder.Environment.IsDevelopment())
+        {
+            httpClientBuilder = httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                return new HttpClientHandler()
+                {
+                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                };
+            });
+        }
+
+        httpClientBuilder = httpClientBuilder.AddClientCredentialsTokenHandler(ClientCredentialsClientName.Parse(oauthService.Key));
+    }
+}
 
 // Add Hangfire services.
 builder.Services.AddHangfireInFeatures(builder.Configuration.GetConnectionString("DefaultConnection"));

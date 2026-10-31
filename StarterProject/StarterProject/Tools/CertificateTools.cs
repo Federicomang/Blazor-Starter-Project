@@ -19,5 +19,10 @@ namespace StarterProject.Tools
 
             return cert;
         }
+
+        public static X509Certificate2 GetCertificateFromFile(string filePath, string password)
+        {
+            return X509CertificateLoader.LoadPkcs12FromFile(filePath, password, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+        }
     }
 }
